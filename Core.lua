@@ -7,40 +7,42 @@ AutoPIRemix:SetScript("OnEvent", AutoPIRemix.OnEvent)
 AutoPIRemix:RegisterEvent("ADDON_LOADED")
 
 -- Ordered by bloodmallet "Power Infusion | Castingpatchwerk" (single target),
--- sim'd 2026-06-10 (SimC build 1493847). Ranked by % DPS gained from PI.
+-- sim'd 2026-06-10 (SimC build 1493847). Ranked by absolute DPS gained from PI
+-- (the website chart's default "absolute" sort = bloodmallet sorted_data_keys_2),
+-- which prioritizes raw raid DPS added and naturally sinks low-DPS tank specs.
 -- Specs with no PI sim data (Augmentation, healers) are parked at the end;
 -- healers are never selected anyway (isDPS filters to role == DAMAGER).
 AutoPIRemix.bloodmallet_spec_ids = {
 	63,   -- Fire Mage
-	104,  -- Guardian Druid
-	102,  -- Balance Druid
-	263,  -- Enhancement Shaman
+	254,  -- Marksmanship Hunter
 	253,  -- Beast Mastery Hunter
+	262,  -- Elemental Shaman
+	102,  -- Balance Druid
 	266,  -- Demonology Warlock
 	269,  -- Windwalker Monk
 	255,  -- Survival Hunter
-	254,  -- Marksmanship Hunter
-	262,  -- Elemental Shaman
+	263,  -- Enhancement Shaman
 	103,  -- Feral Druid
-	70,   -- Retribution Paladin
 	265,  -- Affliction Warlock
+	70,   -- Retribution Paladin
 	62,   -- Arcane Mage
-	66,   -- Protection Paladin
-	1480, -- Devourer Demon Hunter
+	104,  -- Guardian Druid
 	259,  -- Assassination Rogue
 	71,   -- Arms Warrior
+	1480, -- Devourer Demon Hunter
 	252,  -- Unholy Death Knight
-	258,  -- Shadow Priest
-	1467, -- Devastation Evoker
-	581,  -- Vengeance Demon Hunter
-	73,   -- Protection Warrior
-	64,   -- Frost Mage
-	577,  -- Havoc Demon Hunter
 	251,  -- Frost Death Knight
+	258,  -- Shadow Priest
+	577,  -- Havoc Demon Hunter
+	1467, -- Devastation Evoker
+	64,   -- Frost Mage
 	72,   -- Fury Warrior
-	250,  -- Blood Death Knight
+	66,   -- Protection Paladin
 	267,  -- Destruction Warlock
 	260,  -- Outlaw Rogue
+	73,   -- Protection Warrior
+	581,  -- Vengeance Demon Hunter
+	250,  -- Blood Death Knight
 	261,  -- Subtlety Rogue
 	268,  -- Brewmaster Monk
 	-- No bloodmallet PI data below this point:
