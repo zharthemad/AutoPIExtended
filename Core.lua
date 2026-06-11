@@ -1,13 +1,13 @@
-AutoPI = CreateFrame("Frame")
+AutoPIRemix = CreateFrame("Frame")
 
-function AutoPI:OnEvent(event, ...)
+function AutoPIRemix:OnEvent(event, ...)
 	self[event](self, event, ...)
 end
-AutoPI:SetScript("OnEvent", AutoPI.OnEvent)
-AutoPI:RegisterEvent("ADDON_LOADED")
+AutoPIRemix:SetScript("OnEvent", AutoPIRemix.OnEvent)
+AutoPIRemix:RegisterEvent("ADDON_LOADED")
 
 -- List taken the 2025-04-10 from bloodmallet calcs
-AutoPI.bloodmallet_spec_ids = {
+AutoPIRemix.bloodmallet_spec_ids = {
 	255, -- Survival Hunter
 	1467, -- Devastation Evoker
 	252, -- Unholy Death Knight
@@ -55,11 +55,11 @@ AutoPI.bloodmallet_spec_ids = {
 -- ------------------------------------------------------------
 
 -- How often to rescan group for missing/stale spec info (seconds)
-AutoPI.SCAN_INTERVAL = 4
+AutoPIRemix.SCAN_INTERVAL = 4
 -- How long we trust a cached spec before refreshing (seconds)
-AutoPI.CACHE_TTL = 60
+AutoPIRemix.CACHE_TTL = 60
 
-function AutoPI:isDPS(specID)
+function AutoPIRemix:isDPS(specID)
 	local _, _, _, _, role = GetSpecializationInfoByID(specID)
 	return role == "DAMAGER"
 end
@@ -88,7 +88,7 @@ end
 -- Scoring helpers (spec order + inspect ilvl)
 -- ------------------------------------------------------------
 
-function AutoPI:_ComputeAutoBaseline()
+function AutoPIRemix:_ComputeAutoBaseline()
 	-- Returns baseline, sourceString
 	local manual = tonumber(self.db.ilvl_baseline) or 0
 	if not self.db.ilvl_auto_baseline then
@@ -97,7 +97,7 @@ function AutoPI:_ComputeAutoBaseline()
 		return manual, "manual"
 	end
 
-function AutoPI:_ComputeEffectiveK(baseline)
+function AutoPIRemix:_ComputeEffectiveK(baseline)
 	local manualK = tonumber(self.db.ilvl_k) or 100
 	if manualK == 0 then manualK = 100 end
 
@@ -117,7 +117,7 @@ function AutoPI:_ComputeEffectiveK(baseline)
 	return k, self._last_k_source
 end
 
-function AutoPI:_IlvlToTrackLabel(ilvl)
+function AutoPIRemix:_IlvlToTrackLabel(ilvl)
 	local x = tonumber(ilvl) or 0
 	-- Lookup table based on common 12.0 conversion chart values
 	local map = {
@@ -184,7 +184,7 @@ end
 	return manual, "manual(fallback)"
 end
 
-function AutoPI:_ComputeCandidateScores(list, rank, N, baseline, K, c)
+function AutoPIRemix:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 	local function clamp(x, lo, hi)
 		if x < lo then return lo end
 		if x > hi then return hi end
@@ -235,7 +235,7 @@ function AutoPI:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 	return out
 end
 
-function AutoPI:_ResetCaches()
+function AutoPIRemix:_ResetCaches()
 	self.group_cache = {}   -- [guid] = { name=..., spec=..., ts=... }
 	self.name_cache = {}    -- [lower(name)] = guid
 	self.spec_cache = {}    -- [specID] = { [guid]=name, ... }
@@ -250,7 +250,7 @@ function AutoPI:_ResetCaches()
 	self._inspectTimeoutToken = 0
 end
 
-function AutoPI:_RemoveGuid(guid)
+function AutoPIRemix:_RemoveGuid(guid)
 	local entry = self.group_cache[guid]
 	if not entry then return end
 	self.name_cache[(entry.name or ""):lower()] = nil
@@ -263,7 +263,7 @@ function AutoPI:_RemoveGuid(guid)
 	self.group_cache[guid] = nil
 end
 
-function AutoPI:_UpsertGuidSpec(guid, name, specID)
+function AutoPIRemix:_UpsertGuidSpec(guid, name, specID)
 	if not guid or not name or not specID or specID <= 0 then return end
 
 	-- Remove previous spec mapping if changed
@@ -280,7 +280,7 @@ function AutoPI:_UpsertGuidSpec(guid, name, specID)
 	self.spec_cache[specID][guid] = name
 end
 
-function AutoPI:_RebuildRoster()
+function AutoPIRemix:_RebuildRoster()
 	-- Remove anyone no longer in group
 	local still = {}
 
@@ -298,7 +298,7 @@ function AutoPI:_RebuildRoster()
 	end
 end
 
-function AutoPI:_QueueInspect(guid, unit)
+function AutoPIRemix:_QueueInspect(guid, unit)
 	-- Avoid duplicates / already have pending
 	for _, item in ipairs(self.inspectQueue) do
 		if item.guid == guid then return end
@@ -307,7 +307,7 @@ function AutoPI:_QueueInspect(guid, unit)
 	table.insert(self.inspectQueue, { guid = guid, unit = unit })
 end
 
-function AutoPI:_ScanGroupForSpecs()
+function AutoPIRemix:_ScanGroupForSpecs()
 	if InCombatLockdown() then return end
 	if not (IsInGroup() or IsInRaid()) then return end
 
@@ -331,7 +331,7 @@ function AutoPI:_ScanGroupForSpecs()
 	self:_ProcessInspectQueue()
 end
 
-function AutoPI:_ProcessInspectQueue()
+function AutoPIRemix:_ProcessInspectQueue()
 	if self.inspectInProgress then return end
 	if InCombatLockdown() then return end
 	if not self.inspectQueue[1] then return end
@@ -376,7 +376,7 @@ function AutoPI:_ProcessInspectQueue()
 	end)
 end
 
-function AutoPI:INSPECT_READY(event, guid)
+function AutoPIRemix:INSPECT_READY(event, guid)
 	-- Only accept the inspect we initiated
 	if not self.inspectPending or guid ~= self.inspectPending.guid then return end
 
@@ -406,7 +406,7 @@ function AutoPI:INSPECT_READY(event, guid)
 	C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
 end
 
-function AutoPI:_StartScanner()
+function AutoPIRemix:_StartScanner()
 	if self._scanner then return end
 	self._scanner = C_Timer.NewTicker(self.SCAN_INTERVAL, function()
 		self:_ScanGroupForSpecs()
@@ -415,7 +415,7 @@ function AutoPI:_StartScanner()
 	C_Timer.After(1.0, function() self:_ScanGroupForSpecs() end)
 end
 
-function AutoPI:_StopScanner()
+function AutoPIRemix:_StopScanner()
 	if self._scanner then
 		self._scanner:Cancel()
 		self._scanner = nil
@@ -424,11 +424,11 @@ end
 
 -- ------------------------------------------------------------
 
-function AutoPI:ADDON_LOADED(event, addOnName)
-	if addOnName ~= "AutoPI" then return end
+function AutoPIRemix:ADDON_LOADED(event, addOnName)
+	if addOnName ~= "AutoPIRemix" then return end
 
-	AutoPIDB = AutoPIDB or {}
-	self.db = AutoPIDB
+	AutoPIRemixDB = AutoPIRemixDB or {}
+	self.db = AutoPIRemixDB
 	for k, v in pairs(self.defaults) do
 		if self.db[k] == nil then
 			self.db[k] = v
@@ -457,19 +457,19 @@ function AutoPI:ADDON_LOADED(event, addOnName)
 	end)
 end
 
-function AutoPI:GROUP_ROSTER_UPDATE()
+function AutoPIRemix:GROUP_ROSTER_UPDATE()
 	-- Rebuild roster + kick a scan soon
 	self:_RebuildRoster()
 	C_Timer.After(0.5, function() self:_ScanGroupForSpecs() end)
 end
 
-function AutoPI:PLAYER_REGEN_ENABLED()
+function AutoPIRemix:PLAYER_REGEN_ENABLED()
 	-- Leaving combat: refresh macro + continue inspections
 	self:rewriteMacro()
 	C_Timer.After(0.5, function() self:_ProcessInspectQueue() end)
 end
 
-function AutoPI:rewriteMacro()
+function AutoPIRemix:rewriteMacro()
 	if InCombatLockdown() then return end
 
 	-- Prefer GetMacroIndexByName over hard-coded index ranges (future-proof)
@@ -593,10 +593,10 @@ print("Updated PI macro: winner is " .. (targetname or "default/focus") .. "!")
 end
 
 
-function AutoPI:PrintDebugScores()
+function AutoPIRemix:PrintDebugScores()
 	local list = self.db.use_bloodmallet_spec_ids and self.bloodmallet_spec_ids or self.db.specIDs_order
 	if not list or #list == 0 then
-		print("AutoPI debug: no spec order list configured.")
+		print("AutoPIRemix debug: no spec order list configured.")
 		return
 	end
 
@@ -649,7 +649,7 @@ function AutoPI:PrintDebugScores()
 		end
 	end
 
-	print(("AutoPI debug: weighted=%s  DPS=%d inspected=%d (%.0f%%)  candidates=%d (inspected=%d)  baseline=%.1f (%s)  K=%.1f (%s)%s  clamp=%.2f")
+	print(("AutoPIRemix debug: weighted=%s  DPS=%d inspected=%d (%.0f%%)  candidates=%d (inspected=%d)  baseline=%.1f (%s)  K=%.1f (%s)%s  clamp=%.2f")
 		:format(tostring(self.db.use_weighted_scoring), dpsTotal, dpsInspected, inspectedPct, (scores and #scores or 0), candidatesInspected, baseline, baselineSource or "?", K, Ksource or "?", (self.db.ilvl_auto_k and (" [manualK="..tostring(K_manual).."]") or ""), c))
 
 	-- Inspect pipeline telemetry
@@ -672,7 +672,7 @@ function AutoPI:PrintDebugScores()
 
 
 		if not scores or #scores == 0 then
-			print("AutoPI debug: no eligible DPS candidates with known spec yet (inspect may still be warming up).")
+			print("AutoPIRemix debug: no eligible DPS candidates with known spec yet (inspect may still be warming up).")
 			return
 		end
 
@@ -690,7 +690,7 @@ function AutoPI:PrintDebugScores()
 			conf = "MED"
 		end
 
-		print(("AutoPI debug: winner=%s  confidence=%s (Δ=%.3f)")
+		print(("AutoPIRemix debug: winner=%s  confidence=%s (Δ=%.3f)")
 			:format(scores[1].name or "?", conf, delta))
 
 	-- Print top 10 candidates
@@ -707,17 +707,19 @@ function AutoPI:PrintDebugScores()
 end
 
 
-SLASH_AUTOPI1 = "/autopi"
-SlashCmdList.AUTOPI = function(msg)
+SLASH_AUTOPIREMIX1 = "/autopiremix"
+SLASH_AUTOPIREMIX2 = "/apir"
+SLASH_AUTOPIREMIX3 = "/autopi" -- legacy alias (pre-rename)
+SlashCmdList.AUTOPIREMIX = function(msg)
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$","")
 	if msg == "debug" then
-		AutoPI:PrintDebugScores()
+		AutoPIRemix:PrintDebugScores()
 		return
 	end
 	-- default: open settings
-	if AutoPI.settingsCategoryID then
-		Settings.OpenToCategory(AutoPI.settingsCategoryID)
-	elseif AutoPI.panel_main and AutoPI.panel_main.name then
-		Settings.OpenToCategory(AutoPI.panel_main.name)
+	if AutoPIRemix.settingsCategoryID then
+		Settings.OpenToCategory(AutoPIRemix.settingsCategoryID)
+	elseif AutoPIRemix.panel_main and AutoPIRemix.panel_main.name then
+		Settings.OpenToCategory(AutoPIRemix.panel_main.name)
 	end
 end

@@ -41,8 +41,9 @@ re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`).
 
 ## Usage
 
-- `/autopi` — open the settings panel.
-- `/autopi debug` — print the current selection state: DPS counts, inspect
+- `/autopiremix` (or the short alias `/apir`, or legacy `/autopi`) — open the
+  settings panel.
+- `/apir debug` — print the current selection state: DPS counts, inspect
   coverage, baseline, K, clamp, the ranked candidate breakdown, the winner, and
   inspect-pipeline telemetry (queue length, current target, request/success/
   timeout/skip counters).

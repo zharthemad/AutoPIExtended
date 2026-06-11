@@ -1,4 +1,4 @@
-AutoPI.defaults = {
+AutoPIRemix.defaults = {
 	trinket1 = false,
 	trinket2 = false,
 	spell391109 = false,
@@ -24,10 +24,10 @@ end
 local function RegisterCanvas(frame)
 	local cat = Settings.RegisterCanvasLayoutCategory(frame, frame.name, frame.name);
 		Settings.RegisterAddOnCategory(cat)
-	AutoPI.settingsCategoryID = (cat.GetID and cat:GetID()) or cat.ID
+	AutoPIRemix.settingsCategoryID = (cat.GetID and cat:GetID()) or cat.ID
 end
 
-function AutoPI:CreateCheckbox(option, label, parent, updateFunc)
+function AutoPIRemix:CreateCheckbox(option, label, parent, updateFunc)
 	local cb = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
 	cb.Text:SetText(label)
 	local function UpdateOption(value)
@@ -42,14 +42,14 @@ function AutoPI:CreateCheckbox(option, label, parent, updateFunc)
 	cb:HookScript("OnClick", function(_, btn, down)
 		UpdateOption(cb:GetChecked())
 	end)
-	EventRegistry:RegisterCallback("AutoPI.OnReset", function()
+	EventRegistry:RegisterCallback("AutoPIRemix.OnReset", function()
 		UpdateOption(self.defaults[option])
 	end, cb)
 	return cb
 end
 
 
-function AutoPI:CreateNumberBox(option, label, parent, width, onChange, allowFloat)
+function AutoPIRemix:CreateNumberBox(option, label, parent, width, onChange, allowFloat)
 	local this = self
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetSize(width or 200, 24)
@@ -79,7 +79,7 @@ function AutoPI:CreateNumberBox(option, label, parent, width, onChange, allowFlo
 	eb:SetScript("OnEscapePressed", function(self) self:ClearFocus(); eb:SetNumber(tonumber(this.db[option]) or 0) end)
 	eb:SetScript("OnEditFocusLost", function() commit() end)
 
-	EventRegistry:RegisterCallback("AutoPI.OnReset", function()
+	EventRegistry:RegisterCallback("AutoPIRemix.OnReset", function()
 		this.db[option] = this.defaults[option]
 		eb:SetNumber(tonumber(this.db[option]) or 0)
 		if onChange then onChange(this.db[option]) end
@@ -89,7 +89,7 @@ function AutoPI:CreateNumberBox(option, label, parent, width, onChange, allowFlo
 	return frame
 end
 
-function AutoPI:CreateMultiLineTextBoxWithBackground(option, parent)
+function AutoPIRemix:CreateMultiLineTextBoxWithBackground(option, parent)
 	local this = self
     local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     frame:SetSize(420, 130)
@@ -131,10 +131,10 @@ function AutoPI:CreateMultiLineTextBoxWithBackground(option, parent)
     return frame
 end
 
-function AutoPI:InitializeOptions()
+function AutoPIRemix:InitializeOptions()
 	-- main panel
 	self.panel_main = CreateFrame("Frame")
-	self.panel_main.name = "AutoPI"
+	self.panel_main.name = "AutoPI Remix"
 
 	-- Create main scroll frame for the entire panel
 	local mainScrollFrame = CreateFrame("ScrollFrame", nil, self.panel_main, "UIPanelScrollFrameTemplate")
@@ -151,12 +151,12 @@ function AutoPI:InitializeOptions()
 	trinketsTitle:SetText("Trinkets")
 
 	local trinket1CB = self:CreateCheckbox("trinket1", "Use Trinket 1 in macro", mainContent, function(value)
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	trinket1CB:SetPoint("TOPLEFT", trinketsTitle, "BOTTOMLEFT", 10, -10)
 
 	local trinket2CB = self:CreateCheckbox("trinket2", "Use Trinket 2 in macro", mainContent, function(value)
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	trinket2CB:SetPoint("LEFT", trinket1CB, "RIGHT", 200, 0)
 
@@ -164,12 +164,12 @@ function AutoPI:InitializeOptions()
 	local spell228260Info = C_Spell.GetSpellInfo(228260)
 
 	local spell391109CB = self:CreateCheckbox("spell391109", "Cast " .. spell391109Info.name .. " if known", mainContent, function(value)
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	spell391109CB:SetPoint("TOPLEFT", trinket1CB, "BOTTOMLEFT", 0, -10)
 
 	local spell228260CB = self:CreateCheckbox("spell228260", "Cast " .. spell228260Info.name .. " if known", mainContent, function(value)
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	spell228260CB:SetPoint("LEFT", spell391109CB, "RIGHT", 200, 0)
 
@@ -195,7 +195,7 @@ function AutoPI:InitializeOptions()
 	local baselineBox
 	local function UpdateBaselineEnabled()
 		if baselineBox and baselineBox.editBox then
-			if AutoPI.db.ilvl_auto_baseline then
+			if AutoPIRemix.db.ilvl_auto_baseline then
 				baselineBox.editBox:Disable()
 				baselineBox.editBox:SetAlpha(0.5)
 			else
@@ -206,19 +206,19 @@ function AutoPI:InitializeOptions()
 	end
 
 	local weightedCB = self:CreateCheckbox("use_weighted_scoring", "Use weighted scoring (spec order + item level)", mainContent, function()
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	weightedCB:SetPoint("TOPLEFT", scoringTitle, "BOTTOMLEFT", 10, -10)
 
 	local autoBaseCB = self:CreateCheckbox("ilvl_auto_baseline", "Auto-detect baseline from group average ilvl", mainContent, function()
 		UpdateBaselineEnabled()
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 	autoBaseCB:SetPoint("TOPLEFT", weightedCB, "BOTTOMLEFT", 0, -6)
 local kBox
 local function UpdateKEnabled()
 	if kBox and kBox.editBox then
-		if AutoPI.db.ilvl_auto_k then
+		if AutoPIRemix.db.ilvl_auto_k then
 			kBox.editBox:Disable()
 			kBox.editBox:SetAlpha(0.5)
 		else
@@ -230,22 +230,22 @@ end
 
 local autoKCB = self:CreateCheckbox("ilvl_auto_k", "Auto-scale K from baseline (baseline*0.8, clamped 60-140)", mainContent, function()
 	UpdateKEnabled()
-	AutoPI:rewriteMacro()
+	AutoPIRemix:rewriteMacro()
 end)
 autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 
 
 
-	baselineBox = self:CreateNumberBox("ilvl_baseline", "Baseline ilvl", mainContent, 220, function() AutoPI:rewriteMacro() end)
+	baselineBox = self:CreateNumberBox("ilvl_baseline", "Baseline ilvl", mainContent, 220, function() AutoPIRemix:rewriteMacro() end)
 	baselineBox:SetPoint("TOPLEFT", autoKCB, "BOTTOMLEFT", 0, -10)
 	UpdateBaselineEnabled()
 
-	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 260, function() AutoPI:rewriteMacro() end)
+	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 260, function() AutoPIRemix:rewriteMacro() end)
 	kBox:SetPoint("LEFT", baselineBox, "RIGHT", 40, 0)
 	UpdateKEnabled()
 
 
-	local clampBox = self:CreateNumberBox("ilvl_clamp", "Clamp (max +/- score)", mainContent, 260, function() AutoPI:rewriteMacro() end, true)
+	local clampBox = self:CreateNumberBox("ilvl_clamp", "Clamp (max +/- score)", mainContent, 260, function() AutoPIRemix:rewriteMacro() end, true)
 	clampBox:SetPoint("TOPLEFT", baselineBox, "BOTTOMLEFT", 0, -10)
 
 		-- Spec-order section title (separate from the main title to avoid anchor cycles)
@@ -263,7 +263,7 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 			child:Hide()
 		end
 
-		for i, specID in ipairs(AutoPI.db.specIDs_order or {}) do
+		for i, specID in ipairs(AutoPIRemix.db.specIDs_order or {}) do
 			local id, name, desc, icon, role, classFile, className = GetSpecializationInfoByID(specID)
 
 			local line = content:CreateTexture(nil, "BACKGROUND")
@@ -280,7 +280,7 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 			end
 			upBtn:SetScript("OnClick", function()
 				if i > 1 then
-					AutoPI.db.specIDs_order[i], AutoPI.db.specIDs_order[i-1] = AutoPI.db.specIDs_order[i-1], AutoPI.db.specIDs_order[i]
+					AutoPIRemix.db.specIDs_order[i], AutoPIRemix.db.specIDs_order[i-1] = AutoPIRemix.db.specIDs_order[i-1], AutoPIRemix.db.specIDs_order[i]
 					RefreshList()
 				end
 			end)
@@ -289,13 +289,13 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 			downBtn:SetSize(20, 20)
 			downBtn:SetPoint("LEFT", 30, 0)
 			downBtn:SetText("-")
-			if i == #AutoPI.db.specIDs_order then
+			if i == #AutoPIRemix.db.specIDs_order then
 				downBtn:Hide()
 			end
 			downBtn:SetScript("OnClick", function()
-				if i < #AutoPI.db.specIDs_order then
-					AutoPI.db.specIDs_order[i], AutoPI.db.specIDs_order[i+1] = AutoPI.db.specIDs_order[i+1], AutoPI.db.specIDs_order[i]
-					AutoPI:rewriteMacro()
+				if i < #AutoPIRemix.db.specIDs_order then
+					AutoPIRemix.db.specIDs_order[i], AutoPIRemix.db.specIDs_order[i+1] = AutoPIRemix.db.specIDs_order[i+1], AutoPIRemix.db.specIDs_order[i]
+					AutoPIRemix:rewriteMacro()
 					RefreshList()
 				end
 			end)
@@ -322,11 +322,11 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 	manualModeBtn:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -10)
 	manualModeBtn:SetText("Order Specs Manually")
 	manualModeBtn:SetScript("OnClick", function()
-		AutoPI.db.use_bloodmallet_spec_ids = false
-		if not AutoPI.db.specIDs_order or #AutoPI.db.specIDs_order == 0 then
-			AutoPI.db.specIDs_order = {}
-			for _, specID in ipairs(AutoPI.bloodmallet_spec_ids) do
-				table.insert(AutoPI.db.specIDs_order, specID)
+		AutoPIRemix.db.use_bloodmallet_spec_ids = false
+		if not AutoPIRemix.db.specIDs_order or #AutoPIRemix.db.specIDs_order == 0 then
+			AutoPIRemix.db.specIDs_order = {}
+			for _, specID in ipairs(AutoPIRemix.bloodmallet_spec_ids) do
+				table.insert(AutoPIRemix.db.specIDs_order, specID)
 			end
 		end
 		infoText:Hide()
@@ -335,7 +335,7 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 		content:Show()
 		content:SetPoint("TOPLEFT", autoModeBtn, "BOTTOMLEFT", 0, -10)
 		RefreshList()
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 
 	autoModeBtn = CreateFrame("Button", nil, mainContent, "UIPanelButtonTemplate")
@@ -343,12 +343,12 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 	autoModeBtn:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
 	autoModeBtn:SetText("Use Automatic Ordering")
 	autoModeBtn:SetScript("OnClick", function()
-		AutoPI.db.use_bloodmallet_spec_ids = true
+		AutoPIRemix.db.use_bloodmallet_spec_ids = true
 		content:Hide()
 		autoModeBtn:Hide()
 		manualModeBtn:Show()
 		infoText:Show()
-		AutoPI:rewriteMacro()
+		AutoPIRemix:rewriteMacro()
 	end)
 
 	local function ShowManualMode()
@@ -367,7 +367,7 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 		manualModeBtn:Show()
 	end
 
-	if AutoPI.db.use_bloodmallet_spec_ids then
+	if AutoPIRemix.db.use_bloodmallet_spec_ids then
 		ShowAutomaticMode()
 	else
 		ShowManualMode()
