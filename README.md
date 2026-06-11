@@ -13,8 +13,10 @@ currently selected target.
 
 Target selection combines:
 
-- **Spec priority** — a Bloodmallet-style ordered spec list, normalized to a score
-  (top spec ≈ 1.0, bottom spec ≈ 0.0).
+- **Spec priority** — a Bloodmallet Power Infusion ranking (ordered by absolute
+  DPS gained from PI), normalized to a score (top spec ≈ 1.0, bottom ≈ 0.0). Two
+  rankings are bundled and chosen automatically by content (see
+  [Spec priority lists](#spec-priority-lists-raid-vs-everything-else)).
 - **Item level weighting** — inspected item level relative to an automatically
   computed group baseline.
 - **Dynamic scoring** — `totalScore = specScore + ilvlScore`, where the item-level
@@ -26,11 +28,31 @@ Target selection combines:
 
 As of WoW 12.0 the addon no longer depends on `LibGroupInSpecT`.
 
+### Spec priority lists (raid vs. everything else)
+
+The addon bundles two Bloodmallet Power Infusion rankings and picks the one that
+matches your current content:
+
+- **Single-target** (`Castingpatchwerk`) — used in **raid** instances.
+- **Multitarget / AoE** (`Castingpatchwerk5`, 5-target) — used in **Mythic+,
+  dungeons, scenarios, and the open world** (everything that isn't a raid).
+
+The active list switches automatically on instance/zone changes, and the live
+debug window (`/apir debug`) shows which one is in use. If you switch to the
+manual spec-order editor, your custom order is used instead, regardless of
+content.
+
+> These rankings are static snapshots of Bloodmallet's sims. Bloodmallet re-sims
+> each patch, so the lists drift over time and want a periodic manual refresh
+> (WoW addons can't fetch the data at runtime).
+
 ### Macro management
 
 The `PI_WA_AUTO` macro is rewritten to point at the current best target. Because
 Blizzard blocks macro edits in combat, updates are deferred during combat and
-re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`).
+re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`). It also
+re-evaluates when you change zones or instances (`PLAYER_ENTERING_WORLD`), so the
+active spec list stays correct.
 
 ## Installation
 
@@ -59,7 +81,7 @@ The settings panel exposes:
   in a DPS spec.
 - Weighted scoring toggle, plus auto/manual **baseline** and **K**, and the
   item-level **clamp**.
-- Manual spec-order editor (or use the Bloodmallet default ordering).
+- Manual spec-order editor (or use the content-aware Bloodmallet rankings).
 
 ## Design philosophy
 
@@ -70,7 +92,8 @@ squishes.
 
 ## Status
 
-Migrated for WoW 12.0. See open items in the issue tracker / handoff notes.
+Updated for WoW **12.0.5** (Midnight). See open items in the issue tracker /
+handoff notes.
 
 ## Credits
 
