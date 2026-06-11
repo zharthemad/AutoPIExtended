@@ -10,6 +10,7 @@ AutoPIRemix.defaults = {
 	ilvl_baseline = 250,
 	ilvl_k = 100,
 	ilvl_clamp = 0.10,
+	show_target_frame = true,
 }
 
 local function CreateIcon(icon, width, height, parent)
