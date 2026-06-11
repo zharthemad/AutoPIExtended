@@ -767,7 +767,13 @@ end
 function AutoPIRemix:_RefreshDebugWindow()
 	local f = self.debugWindow
 	if not f or not f:IsShown() then return end
-	f.body:SetText(table.concat(self:_BuildDebugLines(), "\n"))
+	-- Guard so a transient error never blanks the window or kills the ticker.
+	local ok, text = pcall(function() return table.concat(self:_BuildDebugLines(), "\n") end)
+	if ok then
+		f.body:SetText(text)
+	else
+		f.body:SetText("|cffff5555error building debug report:|r\n" .. tostring(text))
+	end
 end
 
 function AutoPIRemix:_StopDebugTicker()
@@ -781,7 +787,7 @@ function AutoPIRemix:_EnsureDebugWindow()
 	if self.debugWindow then return self.debugWindow end
 
 	local f = CreateFrame("Frame", "AutoPIRemixDebugWindow", UIParent, "BackdropTemplate")
-	f:SetSize(720, 360)
+	f:SetSize(820, 380)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")
 	f:SetClampedToScreen(true)
@@ -812,7 +818,8 @@ function AutoPIRemix:_EnsureDebugWindow()
 	body:SetPoint("BOTTOMRIGHT", -16, 14)
 	body:SetJustifyH("LEFT")
 	body:SetJustifyV("TOP")
-	body:SetWordWrap(false)  -- honor our explicit line breaks; don't auto-wrap
+	-- Leave word wrap at its default (on); explicit "\n" line breaks then render
+	-- as separate lines. (SetWordWrap(false) collapses the text to one line.)
 	f.body = body
 
 	-- ESC closes; stop the refresh ticker whenever hidden
