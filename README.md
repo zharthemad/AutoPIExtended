@@ -71,6 +71,15 @@ active spec list stays correct.
   the winner, and inspect-pipeline telemetry (queue length, current target,
   request/success/timeout/skip counters). Draggable; close with the X or Esc.
 - `/apir debug print` — dump that same report to the chat frame once.
+- `/apir hud` — toggle the on-screen PI target box (see below).
+
+## On-screen target box
+
+A small draggable box shows the **Power Infusion icon**, the **current PI target**,
+and the **selection confidence** (HIGH / MED / LOW, colored, with the score gap
+to the runner-up; "preferred player" when chosen from your preferred list). Drag
+it anywhere — its position is saved between sessions. Toggle it with `/apir hud`.
+It's shown by default.
 
 ## Configuration
 

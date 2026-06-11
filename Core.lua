@@ -547,12 +547,15 @@ function AutoPIRemix:rewriteMacro()
 	if found == 0 then found = nil end
 
 	local targetname = nil
+	self._piConfidence = nil
+	self._piDelta = nil
 
 	-- First check preferred players, if in DPS spec
 	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
 		local guid = self.name_cache[name:lower()]
 		if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
 			targetname = self.group_cache[guid].name
+			self._piConfidence = "preferred"
 			break
 		end
 	end
@@ -577,6 +580,9 @@ function AutoPIRemix:rewriteMacro()
 			local scores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 			if scores and scores[1] then
 				targetname = scores[1].name
+				local delta = scores[2] and ((scores[1].total or 0) - (scores[2].total or 0)) or (scores[1].total or 0)
+				self._piDelta = delta
+				self._piConfidence = (delta >= 0.08 and "HIGH") or (delta >= 0.04 and "MED") or "LOW"
 			end
 
 			-- Fallback to pure spec order if weighted scoring is disabled AND we didn't find anything via iteration
@@ -591,6 +597,10 @@ function AutoPIRemix:rewriteMacro()
 			end
 		end
 	end
+
+	-- Refresh the on-screen target box (runs every out-of-combat update)
+	self._piTarget = targetname
+	self:_UpdateTargetFrame()
 
 	local spellname = C_Spell.GetSpellName(10060) -- Power Infusion
 	local macro = "#showtooltip"
@@ -842,6 +852,100 @@ function AutoPIRemix:ToggleDebugWindow()
 	self._debugTicker = C_Timer.NewTicker(0.5, function() self:_RefreshDebugWindow() end)
 end
 
+-- ------------------------------------------------------------
+-- On-screen PI target box (draggable HUD: icon + target + confidence)
+-- ------------------------------------------------------------
+
+function AutoPIRemix:_EnsureTargetFrame()
+	if self.targetFrame then return self.targetFrame end
+
+	local f = CreateFrame("Frame", "AutoPIRemixTargetFrame", UIParent, "BackdropTemplate")
+	f:SetSize(230, 50)
+	f:SetFrameStrata("MEDIUM")
+	f:SetClampedToScreen(true)
+	f:SetBackdrop({
+		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+		tile = true, tileSize = 16, edgeSize = 14,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 },
+	})
+	f:SetBackdropColor(0, 0, 0, 0.6)
+
+	-- Position: restore saved spot or default near top-center
+	local pos = self.db and self.db.target_frame_pos
+	if pos and pos.point then
+		f:SetPoint(pos.point, UIParent, pos.relPoint or pos.point, pos.x or 0, pos.y or 0)
+	else
+		f:SetPoint("TOP", UIParent, "TOP", 0, -200)
+	end
+
+	-- Draggable; persist position on release
+	f:EnableMouse(true)
+	f:SetMovable(true)
+	f:RegisterForDrag("LeftButton")
+	f:SetScript("OnDragStart", f.StartMoving)
+	f:SetScript("OnDragStop", function(frame)
+		frame:StopMovingOrSizing()
+		local point, _, relPoint, x, y = frame:GetPoint()
+		AutoPIRemix.db.target_frame_pos = { point = point, relPoint = relPoint, x = x, y = y }
+	end)
+
+	local icon = f:CreateTexture(nil, "ARTWORK")
+	icon:SetSize(36, 36)
+	icon:SetPoint("LEFT", 8, 0)
+	icon:SetTexture(C_Spell.GetSpellTexture(10060)) -- Power Infusion
+	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)        -- trim default icon border
+	f.icon = icon
+
+	local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	name:SetPoint("LEFT", icon, "RIGHT", 8, 8)
+	name:SetJustifyH("LEFT")
+	f.name = name
+
+	local conf = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	conf:SetPoint("TOPLEFT", name, "BOTTOMLEFT", 0, -3)
+	conf:SetJustifyH("LEFT")
+	f.conf = conf
+
+	self.targetFrame = f
+	return f
+end
+
+function AutoPIRemix:_UpdateTargetFrame()
+	if not self.db then return end
+	if not self.db.show_target_frame then
+		if self.targetFrame then self.targetFrame:Hide() end
+		return
+	end
+
+	local f = self:_EnsureTargetFrame()
+	f:Show()
+
+	local target = self._piTarget
+	if target and target ~= "" then
+		f.name:SetText(target)
+	else
+		f.name:SetText("|cff888888(focus / default)|r")
+	end
+
+	local conf = self._piConfidence
+	if conf == "preferred" then
+		f.conf:SetText("|cff66ccffpreferred player|r")
+	elseif conf then
+		local color = (conf == "HIGH" and "ff44ff44") or (conf == "MED" and "ffffcc33") or "ffff6644"
+		local delta = self._piDelta and ("  (Δ%.3f)"):format(self._piDelta) or ""
+		f.conf:SetText(("confidence: |c%s%s|r%s"):format(color, conf, delta))
+	else
+		f.conf:SetText("")
+	end
+end
+
+function AutoPIRemix:ToggleTargetFrame()
+	self.db.show_target_frame = not self.db.show_target_frame
+	self:_UpdateTargetFrame()
+	print("AutoPIRemix: PI target box " .. (self.db.show_target_frame and "shown" or "hidden"))
+end
+
 
 SLASH_AUTOPIREMIX1 = "/autopiremix"
 SLASH_AUTOPIREMIX2 = "/apir"
@@ -854,6 +958,10 @@ SlashCmdList.AUTOPIREMIX = function(msg)
 	end
 	if msg == "debug" then
 		AutoPIRemix:ToggleDebugWindow()
+		return
+	end
+	if msg == "hud" or msg == "box" then
+		AutoPIRemix:ToggleTargetFrame()
 		return
 	end
 	-- default: open settings
