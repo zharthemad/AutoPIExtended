@@ -7,7 +7,7 @@ AutoPIRemix.defaults = {
 	use_weighted_scoring = true,
 	ilvl_auto_baseline = true,
 	ilvl_auto_k = true,
-	ilvl_baseline = 140,
+	ilvl_baseline = 250,
 	ilvl_k = 100,
 	ilvl_clamp = 0.10,
 }

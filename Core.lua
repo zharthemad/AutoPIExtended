@@ -135,9 +135,9 @@ function AutoPIRemix:_ComputeEffectiveK(baseline)
 	local k = b * 0.8
 	-- Keep K sane across scaling contexts
 	if k < 60 then k = 60 end
-	if k > 140 then k = 140 end
+	if k > 240 then k = 240 end
 	self._last_k_used = k
-	self._last_k_source = "auto(baseline*0.8 clamped 60-140)"
+	self._last_k_source = "auto(baseline*0.8 clamped 60-240)"
 	return k, self._last_k_source
 end
 
