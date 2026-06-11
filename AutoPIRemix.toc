@@ -3,6 +3,6 @@
 ## Title: AutoPI Remix
 ## Notes: Automatic PI target
 ## Author: CzarTheMad
-## SavedVariables: AutoPIDB
+## SavedVariables: AutoPIRemixDB
 Core.lua
 Options.lua
