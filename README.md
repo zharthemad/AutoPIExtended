@@ -47,6 +47,8 @@ re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`).
   coverage, baseline, K, clamp, the ranked candidate breakdown, the winner, and
   inspect-pipeline telemetry (queue length, current target, request/success/
   timeout/skip counters).
+- `/apir debug on` / `/apir debug off` — toggle verbose logging (a chat line
+  each time the macro's target changes). Off by default.
 
 ## Configuration
 
