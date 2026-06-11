@@ -6,12 +6,14 @@ end
 AutoPIRemix:SetScript("OnEvent", AutoPIRemix.OnEvent)
 AutoPIRemix:RegisterEvent("ADDON_LOADED")
 
--- Ordered by bloodmallet "Power Infusion | Castingpatchwerk" (single target),
--- sim'd 2026-06-10 (SimC build 1493847). Ranked by absolute DPS gained from PI
+-- Bloodmallet "Power Infusion" rankings, ordered by absolute DPS gained from PI
 -- (the website chart's default "absolute" sort = bloodmallet sorted_data_keys_2),
 -- which prioritizes raw raid DPS added and naturally sinks low-DPS tank specs.
 -- Specs with no PI sim data (Augmentation, healers) are parked at the end;
 -- healers are never selected anyway (isDPS filters to role == DAMAGER).
+-- The active list is chosen by content type (see _ActiveBloodmalletList).
+--
+-- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-06-10 (SimC 1493847).
 AutoPIRemix.bloodmallet_spec_ids = {
 	63,   -- Fire Mage
 	254,  -- Marksmanship Hunter
@@ -55,6 +57,63 @@ AutoPIRemix.bloodmallet_spec_ids = {
 	264,  -- Restoration Shaman
 	1468, -- Preservation Evoker
 }
+
+-- MULTITARGET (M+, dungeons, everything non-raid): "Castingpatchwerk5"
+-- (5-target), sim'd 2026-06-03 (SimC 1493847). Same parked tail.
+AutoPIRemix.bloodmallet_spec_ids_multitarget = {
+	266,  -- Demonology Warlock
+	269,  -- Windwalker Monk
+	63,   -- Fire Mage
+	262,  -- Elemental Shaman
+	263,  -- Enhancement Shaman
+	255,  -- Survival Hunter
+	62,   -- Arcane Mage
+	1467, -- Devastation Evoker
+	258,  -- Shadow Priest
+	102,  -- Balance Druid
+	254,  -- Marksmanship Hunter
+	70,   -- Retribution Paladin
+	265,  -- Affliction Warlock
+	577,  -- Havoc Demon Hunter
+	103,  -- Feral Druid
+	1480, -- Devourer Demon Hunter
+	104,  -- Guardian Druid
+	252,  -- Unholy Death Knight
+	581,  -- Vengeance Demon Hunter
+	261,  -- Subtlety Rogue
+	251,  -- Frost Death Knight
+	250,  -- Blood Death Knight
+	64,   -- Frost Mage
+	66,   -- Protection Paladin
+	73,   -- Protection Warrior
+	253,  -- Beast Mastery Hunter
+	71,   -- Arms Warrior
+	72,   -- Fury Warrior
+	260,  -- Outlaw Rogue
+	267,  -- Destruction Warlock
+	259,  -- Assassination Rogue
+	268,  -- Brewmaster Monk
+	-- No bloodmallet PI data below this point:
+	1473, -- Augmentation Evoker (support spec; not in PI sims)
+	105,  -- Restoration Druid
+	270,  -- Mistweaver Monk
+	65,   -- Holy Paladin
+	256,  -- Discipline Priest
+	257,  -- Holy Priest
+	264,  -- Restoration Shaman
+	1468, -- Preservation Evoker
+}
+
+-- Pick the bloodmallet ranking that matches current content:
+-- single-target in a raid instance, multitarget (AoE) everywhere else
+-- (M+, dungeons, scenarios, open world).
+function AutoPIRemix:_ActiveBloodmalletList()
+	local _, instanceType = IsInInstance()
+	if instanceType == "raid" then
+		return self.bloodmallet_spec_ids, "single-target (raid)"
+	end
+	return self.bloodmallet_spec_ids_multitarget, "multitarget (M+/other)"
+end
 
 -- ------------------------------------------------------------
 -- Lightweight group spec tracking (no LibGroupInSpecT required)
@@ -447,6 +506,7 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 		self:RegisterEvent("PLAYER_REGEN_ENABLED")
 		self:RegisterEvent("GROUP_ROSTER_UPDATE")
 		self:RegisterEvent("INSPECT_READY")
+		self:RegisterEvent("PLAYER_ENTERING_WORLD")
 		self:_StartScanner()
 	end
 
@@ -462,6 +522,15 @@ function AutoPIRemix:GROUP_ROSTER_UPDATE()
 	-- Rebuild roster + kick a scan soon
 	self:_RebuildRoster()
 	C_Timer.After(0.5, function() self:_ScanGroupForSpecs() end)
+end
+
+function AutoPIRemix:PLAYER_ENTERING_WORLD()
+	-- Instance/zone changed: the active ranking (raid vs M+) may differ, so
+	-- refresh the macro and rescan the group shortly after the world loads.
+	C_Timer.After(1.0, function()
+		self:rewriteMacro()
+		self:_ScanGroupForSpecs()
+	end)
 end
 
 function AutoPIRemix:PLAYER_REGEN_ENABLED()
@@ -490,7 +559,7 @@ function AutoPIRemix:rewriteMacro()
 
 	-- If no preferred player found, select from DPS specs
 	if not targetname then
-		local list = self.db.use_bloodmallet_spec_ids and self.bloodmallet_spec_ids or self.db.specIDs_order
+		local list = self.db.use_bloodmallet_spec_ids and self:_ActiveBloodmalletList() or self.db.specIDs_order
 		if list then
 			-- Build rank map (specID -> rank)
 			local rank = {}
@@ -562,11 +631,17 @@ end
 
 
 function AutoPIRemix:PrintDebugScores()
-	local list = self.db.use_bloodmallet_spec_ids and self.bloodmallet_spec_ids or self.db.specIDs_order
+	local list, listLabel
+	if self.db.use_bloodmallet_spec_ids then
+		list, listLabel = self:_ActiveBloodmalletList()
+	else
+		list, listLabel = self.db.specIDs_order, "manual order"
+	end
 	if not list or #list == 0 then
 		print("AutoPIRemix debug: no spec order list configured.")
 		return
 	end
+	print("AutoPIRemix debug: spec list = " .. (listLabel or "?"))
 
 	-- Build rank map
 	local rank = {}
