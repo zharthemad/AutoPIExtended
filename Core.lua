@@ -555,9 +555,7 @@ function AutoPIRemix:rewriteMacro()
 		CreateMacro("PI_WA_AUTO", "INV_MISC_QUESTIONMARK", macro, true)
 	end
 
-	if self.db.debug then
-		print("AutoPIRemix: updated PI macro — winner is " .. (targetname or "default/focus"))
-	end
+	print("AutoPIRemix: updated PI macro — winner is " .. (targetname or "default/focus"))
 end
 
 
@@ -680,11 +678,6 @@ SLASH_AUTOPIREMIX2 = "/apir"
 SLASH_AUTOPIREMIX3 = "/autopi" -- legacy alias (pre-rename)
 SlashCmdList.AUTOPIREMIX = function(msg)
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$","")
-	if msg == "debug on" or msg == "debug off" then
-		AutoPIRemix.db.debug = (msg == "debug on")
-		print("AutoPIRemix: debug logging " .. (AutoPIRemix.db.debug and "ON" or "OFF"))
-		return
-	end
 	if msg == "debug" then
 		AutoPIRemix:PrintDebugScores()
 		return
