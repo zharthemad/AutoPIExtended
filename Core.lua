@@ -503,42 +503,10 @@ function AutoPIRemix:rewriteMacro()
 			local c = tonumber(self.db.ilvl_clamp) or 0.10
 			if c < 0 then c = -c end
 
-			local bestScore, bestName, bestRank, bestIlvl = nil, nil, nil, nil
-
 			local scores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
-			-- Group inspection coverage (for debug visibility)
-			local dpsTotal, dpsInspected = 0, 0
-			local function _CountUnit(unit)
-				if not UnitExists(unit) or UnitIsUnit(unit, "player") then return end
-				if UnitIsConnected(unit) == false then return end
-				local guid = UnitGUID(unit)
-				local entry = guid and self.group_cache and self.group_cache[guid] or nil
-				local role = UnitGroupRolesAssigned(unit)
-				local isDps = (role == "DAMAGER") or (entry and entry.spec and self:isDPS(entry.spec))
-				if not isDps then return end
-				dpsTotal = dpsTotal + 1
-				if entry and entry.spec and self:isDPS(entry.spec) and entry.ilvl and entry.ilvl > 0 then
-					dpsInspected = dpsInspected + 1
-				end
-			end
-			if IsInRaid() then
-				for i=1, GetNumGroupMembers() do _CountUnit("raid"..i) end
-			elseif IsInGroup() then
-				for i=1, GetNumSubgroupMembers() do _CountUnit("party"..i) end
-			end
-			local inspectedPct = (dpsTotal > 0) and (100 * dpsInspected / dpsTotal) or 0
-			local candidatesInspected = 0
-			if scores then
-				for _, s in ipairs(scores) do if s.ilvl and s.ilvl > 0 then candidatesInspected = candidatesInspected + 1 end end
-			end
 			if scores and scores[1] then
-				bestScore = scores[1].total
-				bestName = scores[1].name
-				bestRank = scores[1].rank
-				bestIlvl = scores[1].ilvl
+				targetname = scores[1].name
 			end
-
-			targetname = bestName
 
 			-- Fallback to pure spec order if weighted scoring is disabled AND we didn't find anything via iteration
 			if not targetname and not self.db.use_weighted_scoring then
@@ -587,8 +555,7 @@ function AutoPIRemix:rewriteMacro()
 		CreateMacro("PI_WA_AUTO", "INV_MISC_QUESTIONMARK", macro, true)
 	end
 
-	
-print("Updated PI macro: winner is " .. (targetname or "default/focus") .. "!")
+	print("AutoPIRemix: updated PI macro — winner is " .. (targetname or "default/focus"))
 end
 
 
