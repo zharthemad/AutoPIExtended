@@ -97,6 +97,30 @@ function AutoPIRemix:_ComputeAutoBaseline()
 		return manual, "manual"
 	end
 
+	local sum, n = 0, 0
+	for guid, entry in pairs(self.group_cache or {}) do
+		if entry and entry.ilvl and entry.ilvl > 0 and entry.spec and self:isDPS(entry.spec) then
+			-- Exclude the priest (player) from target baseline
+			if entry.name and not UnitIsUnit(entry.name, "player") then
+				sum = sum + entry.ilvl
+				n = n + 1
+			end
+		end
+	end
+
+	if n > 0 then
+		local avg = sum / n
+		self._last_baseline_used = avg
+		self._last_baseline_source = "auto(n=" .. n .. ")"
+		return avg, self._last_baseline_source
+	end
+
+	-- Fallback if nothing inspectable yet
+	self._last_baseline_used = manual
+	self._last_baseline_source = "manual(fallback)"
+	return manual, "manual(fallback)"
+end
+
 function AutoPIRemix:_ComputeEffectiveK(baseline)
 	local manualK = tonumber(self.db.ilvl_k) or 100
 	if manualK == 0 then manualK = 100 end
@@ -157,31 +181,6 @@ function AutoPIRemix:_IlvlToTrackLabel(ilvl)
 		end
 	end
 	return bestLabel
-end
-
-
-	local sum, n = 0, 0
-	for guid, entry in pairs(self.group_cache or {}) do
-		if entry and entry.ilvl and entry.ilvl > 0 and entry.spec and self:isDPS(entry.spec) then
-			-- Exclude the priest (player) from target baseline
-			if entry.name and not UnitIsUnit(entry.name, "player") then
-				sum = sum + entry.ilvl
-				n = n + 1
-			end
-		end
-	end
-
-	if n > 0 then
-		local avg = sum / n
-		self._last_baseline_used = avg
-		self._last_baseline_source = "auto(n=" .. n .. ")"
-		return avg, self._last_baseline_source
-	end
-
-	-- Fallback if nothing inspectable yet
-	self._last_baseline_used = manual
-	self._last_baseline_source = "manual(fallback)"
-	return manual, "manual(fallback)"
 end
 
 function AutoPIRemix:_ComputeCandidateScores(list, rank, N, baseline, K, c)
