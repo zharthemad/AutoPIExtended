@@ -6,46 +6,51 @@ end
 AutoPIRemix:SetScript("OnEvent", AutoPIRemix.OnEvent)
 AutoPIRemix:RegisterEvent("ADDON_LOADED")
 
--- List taken the 2025-04-10 from bloodmallet calcs
+-- Ordered by bloodmallet "Power Infusion | Castingpatchwerk" (single target),
+-- sim'd 2026-06-10 (SimC build 1493847). Ranked by % DPS gained from PI.
+-- Specs with no PI sim data (Augmentation, healers) are parked at the end;
+-- healers are never selected anyway (isDPS filters to role == DAMAGER).
 AutoPIRemix.bloodmallet_spec_ids = {
-	255, -- Survival Hunter
+	63,   -- Fire Mage
+	104,  -- Guardian Druid
+	102,  -- Balance Druid
+	263,  -- Enhancement Shaman
+	253,  -- Beast Mastery Hunter
+	266,  -- Demonology Warlock
+	269,  -- Windwalker Monk
+	255,  -- Survival Hunter
+	254,  -- Marksmanship Hunter
+	262,  -- Elemental Shaman
+	103,  -- Feral Druid
+	70,   -- Retribution Paladin
+	265,  -- Affliction Warlock
+	62,   -- Arcane Mage
+	66,   -- Protection Paladin
+	1480, -- Devourer Demon Hunter
+	259,  -- Assassination Rogue
+	71,   -- Arms Warrior
+	252,  -- Unholy Death Knight
+	258,  -- Shadow Priest
 	1467, -- Devastation Evoker
-	252, -- Unholy Death Knight
-	266, -- Demonology Warlock
-	265, -- Affliction Warlock
-	254, -- Marksmanship Hunter
-	253, -- Beast Mastery Hunter
-	251, -- Frost Death Knight
-	103, -- Feral Druid
-	63, -- Fire Mage
-	269, -- Windwalker Monk
-	71, -- Arms Warrior
-	259, -- Assassination Rogue
-	267, -- Destruction Warlock
-	263, -- Enhancement Shaman
-	62, -- Arcane Mage
-	577, -- Havoc Demon Hunter
-	70, -- Retribution Paladin
-	102, -- Balance Druid
-	262, -- Elemental Shaman
-	581, -- Vengeance Demon Hunter
-	64, -- Frost Mage
-	73, -- Protection Warrior
-	66, -- Protection Paladin
-	258, -- Shadow Priest
-	72, -- Fury Warrior
-	104, -- Guardian Druid
-	261, -- Subtlety Rogue
-	250, -- Blood Death Knight
-	260, -- Outlaw Rogue
-	268, -- Brewmaster Monk
-	1473, -- Augmentation Evoker
-	105, -- Restoration Druid
-	270, -- Mistweaver Monk
-	65, -- Holy Paladin
-	256, -- Discipline Priest
-	257, -- Holy Priest
-	264, -- Restoration Shaman
+	581,  -- Vengeance Demon Hunter
+	73,   -- Protection Warrior
+	64,   -- Frost Mage
+	577,  -- Havoc Demon Hunter
+	251,  -- Frost Death Knight
+	72,   -- Fury Warrior
+	250,  -- Blood Death Knight
+	267,  -- Destruction Warlock
+	260,  -- Outlaw Rogue
+	261,  -- Subtlety Rogue
+	268,  -- Brewmaster Monk
+	-- No bloodmallet PI data below this point:
+	1473, -- Augmentation Evoker (support spec; not in PI sims)
+	105,  -- Restoration Druid
+	270,  -- Mistweaver Monk
+	65,   -- Holy Paladin
+	256,  -- Discipline Priest
+	257,  -- Holy Priest
+	264,  -- Restoration Shaman
 	1468, -- Preservation Evoker
 }
 
