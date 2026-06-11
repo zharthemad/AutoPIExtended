@@ -1,0 +1,18 @@
+# macOS
+.DS_Store
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# Lua build/parse artifacts
+*.luac
+luac.out
+
+# Local scratch / harnesses
+/tmp/
+
+# Claude Code local settings (keep shared config, ignore personal overrides)
+.claude/settings.local.json

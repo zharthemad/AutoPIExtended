@@ -1,0 +1,8 @@
+## Interface: 120000
+## Version: 12.0.0.1
+## Title: AutoPI Remix
+## Notes: Automatic PI target
+## Author: CzarTheMad
+## SavedVariables: AutoPIDB
+Core.lua
+Options.lua
