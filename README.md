@@ -43,10 +43,12 @@ re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`).
 
 - `/autopiremix` (or the short alias `/apir`, or legacy `/autopi`) — open the
   settings panel.
-- `/apir debug` — print the current selection state: DPS counts, inspect
-  coverage, baseline, K, clamp, the ranked candidate breakdown, the winner, and
-  inspect-pipeline telemetry (queue length, current target, request/success/
-  timeout/skip counters).
+- `/apir debug` — open a live debug window that refreshes in place (no chat
+  scroll) showing the current selection state: which spec list is active, DPS
+  counts, inspect coverage, baseline, K, clamp, the ranked candidate breakdown,
+  the winner, and inspect-pipeline telemetry (queue length, current target,
+  request/success/timeout/skip counters). Draggable; close with the X or Esc.
+- `/apir debug print` — dump that same report to the chat frame once.
 
 ## Configuration
 

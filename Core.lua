@@ -630,7 +630,12 @@ function AutoPIRemix:rewriteMacro()
 end
 
 
-function AutoPIRemix:PrintDebugScores()
+-- Build the debug report as an array of text lines (shared by the chat dump
+-- and the live debug window).
+function AutoPIRemix:_BuildDebugLines()
+	local lines = {}
+	local function add(s) lines[#lines + 1] = s end
+
 	local list, listLabel
 	if self.db.use_bloodmallet_spec_ids then
 		list, listLabel = self:_ActiveBloodmalletList()
@@ -638,10 +643,10 @@ function AutoPIRemix:PrintDebugScores()
 		list, listLabel = self.db.specIDs_order, "manual order"
 	end
 	if not list or #list == 0 then
-		print("AutoPIRemix debug: no spec order list configured.")
-		return
+		add("no spec order list configured.")
+		return lines
 	end
-	print("AutoPIRemix debug: spec list = " .. (listLabel or "?"))
+	add("spec list = " .. (listLabel or "?"))
 
 	-- Build rank map
 	local rank = {}
@@ -682,7 +687,6 @@ function AutoPIRemix:PrintDebugScores()
 	end
 	local inspectedPct = (dpsTotal > 0) and (100 * dpsInspected / dpsTotal) or 0
 
-
 	local scores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 
 	local candidatesInspected = 0
@@ -692,7 +696,7 @@ function AutoPIRemix:PrintDebugScores()
 		end
 	end
 
-	print(("AutoPIRemix debug: weighted=%s  DPS=%d inspected=%d (%.0f%%)  candidates=%d (inspected=%d)  baseline=%.1f (%s)  K=%.1f (%s)%s  clamp=%.2f")
+	add(("weighted=%s  DPS=%d inspected=%d (%.0f%%)  candidates=%d (inspected=%d)  baseline=%.1f (%s)  K=%.1f (%s)%s  clamp=%.2f")
 		:format(tostring(self.db.use_weighted_scoring), dpsTotal, dpsInspected, inspectedPct, (scores and #scores or 0), candidatesInspected, baseline, baselineSource or "?", K, Ksource or "?", (self.db.ilvl_auto_k and (" [manualK="..tostring(K_manual).."]") or ""), c))
 
 	-- Inspect pipeline telemetry
@@ -702,41 +706,39 @@ function AutoPIRemix:PrintDebugScores()
 	local curGuid = cur and cur.guid or "nil"
 	local age = self.inspectLastRequestAt and (GetTime() - self.inspectLastRequestAt) or nil
 	local st = self.inspectStats or {}
-	print("Inspect pipeline:")
-	print(("  queue=%d"):format(qlen))
-	print(("  current=%s (GUID=%s)"):format(curName, curGuid))
+	add("Inspect pipeline:")
+	add(("  queue=%d"):format(qlen))
+	add(("  current=%s (GUID=%s)"):format(curName, curGuid))
 	if age then
-		print(("  lastRequest=%.1fs ago"):format(age))
+		add(("  lastRequest=%.1fs ago"):format(age))
 	else
-		print("  lastRequest=nil")
+		add("  lastRequest=nil")
 	end
-	print(("  stats: requests=%d  success=%d  timeouts=%d  skips=%d")
+	add(("  stats: requests=%d  success=%d  timeouts=%d  skips=%d")
 		:format(tonumber(st.requests) or 0, tonumber(st.success) or 0, tonumber(st.timeouts) or 0, tonumber(st.skips) or 0))
 
+	if not scores or #scores == 0 then
+		add("no eligible DPS candidates with known spec yet (inspect may still be warming up).")
+		return lines
+	end
 
-		if not scores or #scores == 0 then
-			print("AutoPIRemix debug: no eligible DPS candidates with known spec yet (inspect may still be warming up).")
-			return
-		end
+	local delta
+	if scores[2] then
+		delta = (scores[1].total or 0) - (scores[2].total or 0)
+	else
+		delta = (scores[1].total or 0)
+	end
 
-		local delta
-		if scores[2] then
-			delta = (scores[1].total or 0) - (scores[2].total or 0)
-		else
-			delta = (scores[1].total or 0)
-		end
+	local conf = "LOW"
+	if delta >= 0.08 then
+		conf = "HIGH"
+	elseif delta >= 0.04 then
+		conf = "MED"
+	end
 
-		local conf = "LOW"
-		if delta >= 0.08 then
-			conf = "HIGH"
-		elseif delta >= 0.04 then
-			conf = "MED"
-		end
+	add(("winner=%s  confidence=%s (Δ=%.3f)"):format(scores[1].name or "?", conf, delta))
 
-		print(("AutoPIRemix debug: winner=%s  confidence=%s (Δ=%.3f)")
-			:format(scores[1].name or "?", conf, delta))
-
-	-- Print top 10 candidates
+	-- Top 10 candidates
 	local maxLines = math.min(10, #scores)
 	for i = 1, maxLines do
 		local s = scores[i]
@@ -744,9 +746,93 @@ function AutoPIRemix:PrintDebugScores()
 		specName = specName or ("specID " .. tostring(s.specID))
 		local track = self:_IlvlToTrackLabel(s.ilvl)
 		local raw = tonumber(s.rawIlvlScore) or 0
-		print(("%2d) %-16s  %-22s  ilvl=%d%s  rank=%d  spec=%.3f  ilvl=%.3f(raw=%.3f)  total=%.3f")
+		add(("%2d) %-16s  %-22s  ilvl=%d%s  rank=%d  spec=%.3f  ilvl=%.3f(raw=%.3f)  total=%.3f")
 			:format(i, s.name or "?", specName, tonumber(s.ilvl) or 0, track and (" ["..track.."]") or "", tonumber(s.rank) or 0, tonumber(s.specScore) or 0, tonumber(s.ilvlScore) or 0, raw, tonumber(s.total) or 0))
 	end
+
+	return lines
+end
+
+-- One-shot dump to the chat frame.
+function AutoPIRemix:PrintDebugScores()
+	for _, line in ipairs(self:_BuildDebugLines()) do
+		print("AutoPIRemix debug: " .. line)
+	end
+end
+
+-- ------------------------------------------------------------
+-- Live debug window (refreshes in place, no chat scroll)
+-- ------------------------------------------------------------
+
+function AutoPIRemix:_RefreshDebugWindow()
+	local f = self.debugWindow
+	if not f or not f:IsShown() then return end
+	f.body:SetText(table.concat(self:_BuildDebugLines(), "\n"))
+end
+
+function AutoPIRemix:_StopDebugTicker()
+	if self._debugTicker then
+		self._debugTicker:Cancel()
+		self._debugTicker = nil
+	end
+end
+
+function AutoPIRemix:_EnsureDebugWindow()
+	if self.debugWindow then return self.debugWindow end
+
+	local f = CreateFrame("Frame", "AutoPIRemixDebugWindow", UIParent, "BackdropTemplate")
+	f:SetSize(720, 360)
+	f:SetPoint("CENTER")
+	f:SetFrameStrata("DIALOG")
+	f:SetClampedToScreen(true)
+	f:SetBackdrop({
+		bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+		edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+		tile = true, tileSize = 32, edgeSize = 16,
+		insets = { left = 4, right = 4, top = 4, bottom = 4 },
+	})
+	f:SetBackdropColor(0, 0, 0, 0.9)
+
+	-- Draggable by the whole frame
+	f:EnableMouse(true)
+	f:SetMovable(true)
+	f:RegisterForDrag("LeftButton")
+	f:SetScript("OnDragStart", f.StartMoving)
+	f:SetScript("OnDragStop", f.StopMovingOrSizing)
+
+	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	title:SetPoint("TOPLEFT", 14, -12)
+	title:SetText("AutoPI Remix — Debug (live)")
+
+	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
+	close:SetPoint("TOPRIGHT", 2, 2)
+
+	local body = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	body:SetPoint("TOPLEFT", 16, -34)
+	body:SetPoint("BOTTOMRIGHT", -16, 14)
+	body:SetJustifyH("LEFT")
+	body:SetJustifyV("TOP")
+	body:SetWordWrap(false)  -- honor our explicit line breaks; don't auto-wrap
+	f.body = body
+
+	-- ESC closes; stop the refresh ticker whenever hidden
+	tinsert(UISpecialFrames, "AutoPIRemixDebugWindow")
+	f:SetScript("OnHide", function() AutoPIRemix:_StopDebugTicker() end)
+
+	self.debugWindow = f
+	return f
+end
+
+function AutoPIRemix:ToggleDebugWindow()
+	local f = self:_EnsureDebugWindow()
+	if f:IsShown() then
+		f:Hide()
+		return
+	end
+	f:Show()
+	self:_RefreshDebugWindow()
+	self:_StopDebugTicker()
+	self._debugTicker = C_Timer.NewTicker(0.5, function() self:_RefreshDebugWindow() end)
 end
 
 
@@ -755,8 +841,12 @@ SLASH_AUTOPIREMIX2 = "/apir"
 SLASH_AUTOPIREMIX3 = "/autopi" -- legacy alias (pre-rename)
 SlashCmdList.AUTOPIREMIX = function(msg)
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$","")
-	if msg == "debug" then
+	if msg == "debug print" or msg == "debug chat" then
 		AutoPIRemix:PrintDebugScores()
+		return
+	end
+	if msg == "debug" then
+		AutoPIRemix:ToggleDebugWindow()
 		return
 	end
 	-- default: open settings
