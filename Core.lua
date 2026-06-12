@@ -486,6 +486,12 @@ end
 
 function AutoPIRemix:ADDON_LOADED(event, addOnName)
 	if addOnName ~= "AutoPIRemix" then return end
+	self:UnregisterEvent(event)
+
+	-- Priests only: stay completely inert for every other class (no DB, no
+	-- options panel, no frames, no scanner, no macro updates). classID 5 = Priest.
+	local _, classid = UnitClassBase("player")
+	if classid ~= 5 then return end
 
 	AutoPIRemixDB = AutoPIRemixDB or {}
 	self.db = AutoPIRemixDB
@@ -501,17 +507,13 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 
 	self:_ResetCaches()
 
-	local _, classid = UnitClassBase("player")
-	if classid == 5 then
-		self:RegisterEvent("PLAYER_REGEN_ENABLED")
-		self:RegisterEvent("GROUP_ROSTER_UPDATE")
-		self:RegisterEvent("INSPECT_READY")
-		self:RegisterEvent("PLAYER_ENTERING_WORLD")
-		self:_StartScanner()
-	end
+	self:RegisterEvent("PLAYER_REGEN_ENABLED")
+	self:RegisterEvent("GROUP_ROSTER_UPDATE")
+	self:RegisterEvent("INSPECT_READY")
+	self:RegisterEvent("PLAYER_ENTERING_WORLD")
+	self:_StartScanner()
 
 	self:InitializeOptions()
-	self:UnregisterEvent(event)
 
 	C_Timer.After(2, function()
 		self:rewriteMacro()
@@ -951,6 +953,7 @@ SLASH_AUTOPIREMIX1 = "/autopiremix"
 SLASH_AUTOPIREMIX2 = "/apir"
 SLASH_AUTOPIREMIX3 = "/autopi" -- legacy alias (pre-rename)
 SlashCmdList.AUTOPIREMIX = function(msg)
+	if not AutoPIRemix.db then return end -- inactive (non-priest)
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$","")
 	if msg == "debug print" or msg == "debug chat" then
 		AutoPIRemix:PrintDebugScores()
