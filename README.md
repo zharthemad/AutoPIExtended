@@ -83,14 +83,17 @@ It's shown by default.
 
 ## Configuration
 
-The settings panel exposes:
+The settings panel exposes (top to bottom):
 
-- Optional extra spells folded into the macro (e.g. Premonition, trinkets).
-- Preferred-player list (character names, one per line) that take priority when
-  in a DPS spec.
-- Weighted scoring toggle, plus auto/manual **baseline** and **K**, and the
-  item-level **clamp**.
-- Manual spec-order editor (or use the content-aware Bloodmallet rankings).
+- **Trinkets / spells** folded into the macro.
+- **Show on-screen PI target box** toggle.
+- **Preferred-player list** (character names, one per line) that take priority
+  when in a DPS spec.
+- **Target Scoring** — weighted-scoring toggle, plus auto/manual **baseline** and
+  **K**, and the item-level **clamp**. The manual boxes dim when their auto-toggle
+  is on (and all dim when weighted scoring is off).
+- **Spec Priority Order** — use the content-aware Bloodmallet rankings, or switch
+  to a manual drag-order editor.
 
 ## Design philosophy
 
