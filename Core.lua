@@ -314,6 +314,7 @@ function AutoPIRemix:_ResetCaches()
 	self.inspectLastRequestAt = nil
 	self.inspectCurrent = nil -- {guid=..., unit=..., name=...}
 	self._inspectTimeoutToken = 0
+	self._lastAnnouncedTarget = nil
 end
 
 function AutoPIRemix:_RemoveGuid(guid)
@@ -470,6 +471,54 @@ function AutoPIRemix:INSPECT_READY(event, guid)
 
 	-- Process next, slightly delayed to respect throttle
 	C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
+
+	-- Once the queue drains, announce the winner if it changed
+	self:_MaybeAnnounceWinner()
+end
+
+function AutoPIRemix:_AnnounceWinner()
+	local target = self._piTarget
+	if not target or target == "" then return end
+	if not (IsInGroup() or IsInRaid()) then return end
+
+	local channel
+	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+		channel = "INSTANCE_CHAT"
+	elseif IsInRaid() then
+		channel = "RAID"
+	else
+		channel = "PARTY"
+	end
+
+	local conf = self._piConfidence or ""
+	local suffix = (conf == "preferred") and " (preferred)"
+	                or (conf ~= "" and (" (" .. conf .. ")"))
+	                or ""
+	SendChatMessage("PI target: " .. target .. suffix, channel)
+end
+
+-- Force an announcement of the current target (manual HUD button). Syncs the
+-- last-announced target so the auto logic won't immediately repeat it.
+function AutoPIRemix:_ForceAnnounceWinner()
+	local t = self._piTarget
+	self._lastAnnouncedTarget = (t and t ~= "") and t or nil
+	self:_AnnounceWinner()
+end
+
+-- Announce the winner only when scanning has settled and the target actually
+-- changed since the last announcement (so joins/leaves re-announce, but a
+-- steady target doesn't spam group chat).
+function AutoPIRemix:_MaybeAnnounceWinner()
+	if self.inspectInProgress or self.inspectQueue[1] then return end -- still scanning
+
+	local target = self._piTarget
+	local current = (target and target ~= "") and target or nil
+	if current == self._lastAnnouncedTarget then return end
+
+	self._lastAnnouncedTarget = current
+	if current then
+		self:_AnnounceWinner()
+	end
 end
 
 function AutoPIRemix:_StartScanner()
@@ -527,14 +576,21 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 end
 
 function AutoPIRemix:GROUP_ROSTER_UPDATE()
-	-- Rebuild roster + kick a scan soon
+	-- Rebuild roster + kick a scan soon. After it settles, recompute the winner
+	-- and re-announce if it changed (covers leavers that need no new inspect).
 	self:_RebuildRoster()
-	C_Timer.After(0.5, function() self:_ScanGroupForSpecs() end)
+	C_Timer.After(0.5, function()
+		self:_ScanGroupForSpecs()
+		self:rewriteMacro()
+		self:_MaybeAnnounceWinner()
+	end)
 end
 
 function AutoPIRemix:PLAYER_ENTERING_WORLD()
 	-- Instance/zone changed: the active ranking (raid vs M+) may differ, so
 	-- refresh the macro and rescan the group shortly after the world loads.
+	-- Clear the last-announced target so a fresh instance re-announces.
+	self._lastAnnouncedTarget = nil
 	C_Timer.After(1.0, function()
 		self:rewriteMacro()
 		self:_ScanGroupForSpecs()
@@ -954,6 +1010,26 @@ function AutoPIRemix:_EnsureTargetFrame()
 	end)
 	dbgBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	f.dbgBtn = dbgBtn
+
+	-- Announce button, just left of the debug button: re-sends the current target
+	local annBtn = CreateFrame("Button", nil, f)
+	annBtn:SetSize(20, 14)
+	annBtn:SetPoint("TOPRIGHT", dbgBtn, "TOPLEFT", -4, 0)
+	local annBg = annBtn:CreateTexture(nil, "BACKGROUND")
+	annBg:SetAllPoints()
+	annBg:SetColorTexture(0.15, 0.4, 0.15, 0.8)
+	local annLabel = annBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	annLabel:SetAllPoints()
+	annLabel:SetText("A")
+	annBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	annBtn:SetScript("OnClick", function() AutoPIRemix:_ForceAnnounceWinner() end)
+	annBtn:SetScript("OnEnter", function(btn)
+		GameTooltip:SetOwner(btn, "ANCHOR_BOTTOM")
+		GameTooltip:SetText("Announce PI target to group")
+		GameTooltip:Show()
+	end)
+	annBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	f.annBtn = annBtn
 
 	self.targetFrame = f
 	return f
