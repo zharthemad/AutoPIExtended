@@ -314,6 +314,7 @@ function AutoPIRemix:_ResetCaches()
 	self.inspectLastRequestAt = nil
 	self.inspectCurrent = nil -- {guid=..., unit=..., name=...}
 	self._inspectTimeoutToken = 0
+	self._scanAnnounceDone = false
 end
 
 function AutoPIRemix:_RemoveGuid(guid)
@@ -470,6 +471,33 @@ function AutoPIRemix:INSPECT_READY(event, guid)
 
 	-- Process next, slightly delayed to respect throttle
 	C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
+
+	-- Announce winner the first time the queue fully drains this session
+	if not self._scanAnnounceDone and not self.inspectQueue[1] then
+		self._scanAnnounceDone = true
+		self:_AnnounceWinner()
+	end
+end
+
+function AutoPIRemix:_AnnounceWinner()
+	local target = self._piTarget
+	if not target or target == "" then return end
+	if not (IsInGroup() or IsInRaid()) then return end
+
+	local channel
+	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
+		channel = "INSTANCE_CHAT"
+	elseif IsInRaid() then
+		channel = "RAID"
+	else
+		channel = "PARTY"
+	end
+
+	local conf = self._piConfidence or ""
+	local suffix = (conf == "preferred") and " (preferred)"
+	                or (conf ~= "" and (" (" .. conf .. ")"))
+	                or ""
+	SendChatMessage("PI target: " .. target .. suffix, channel)
 end
 
 function AutoPIRemix:_StartScanner()
@@ -535,6 +563,7 @@ end
 function AutoPIRemix:PLAYER_ENTERING_WORLD()
 	-- Instance/zone changed: the active ranking (raid vs M+) may differ, so
 	-- refresh the macro and rescan the group shortly after the world loads.
+	self._scanAnnounceDone = false
 	C_Timer.After(1.0, function()
 		self:rewriteMacro()
 		self:_ScanGroupForSpecs()
