@@ -842,6 +842,7 @@ function AutoPIRemix:_EnsureDebugWindow()
 	tinsert(UISpecialFrames, "AutoPIRemixDebugWindow")
 	f:SetScript("OnHide", function() AutoPIRemix:_StopDebugTicker() end)
 
+	f:Hide()  -- start hidden so first ToggleDebugWindow shows rather than hides
 	self.debugWindow = f
 	return f
 end
@@ -866,7 +867,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	if self.targetFrame then return self.targetFrame end
 
 	local f = CreateFrame("Frame", "AutoPIRemixTargetFrame", UIParent, "BackdropTemplate")
-	f:SetSize(230, 50)
+	f:SetSize(230, 68)
 	f:SetFrameStrata("MEDIUM")
 	f:SetClampedToScreen(true)
 	f:SetBackdrop({
@@ -913,6 +914,31 @@ function AutoPIRemix:_EnsureTargetFrame()
 	conf:SetJustifyH("LEFT")
 	f.conf = conf
 
+	local scan = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	scan:SetPoint("TOPLEFT", conf, "BOTTOMLEFT", 0, -2)
+	scan:SetJustifyH("LEFT")
+	f.scan = scan
+
+	-- Small debug button in the upper-right corner
+	local dbgBtn = CreateFrame("Button", nil, f)
+	dbgBtn:SetSize(20, 14)
+	dbgBtn:SetPoint("TOPRIGHT", f, "TOPRIGHT", -5, -5)
+	local dbgBg = dbgBtn:CreateTexture(nil, "BACKGROUND")
+	dbgBg:SetAllPoints()
+	dbgBg:SetColorTexture(0.15, 0.15, 0.4, 0.8)
+	local dbgLabel = dbgBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	dbgLabel:SetAllPoints()
+	dbgLabel:SetText("D")
+	dbgBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	dbgBtn:SetScript("OnClick", function() AutoPIRemix:ToggleDebugWindow() end)
+	dbgBtn:SetScript("OnEnter", function(btn)
+		GameTooltip:SetOwner(btn, "ANCHOR_BOTTOM")
+		GameTooltip:SetText("Toggle debug window")
+		GameTooltip:Show()
+	end)
+	dbgBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	f.dbgBtn = dbgBtn
+
 	self.targetFrame = f
 	return f
 end
@@ -943,6 +969,26 @@ function AutoPIRemix:_UpdateTargetFrame()
 		f.conf:SetText(("confidence: |c%s%s|r%s"):format(color, conf, delta))
 	else
 		f.conf:SetText("")
+	end
+
+	-- Scan progress: how many group members have been successfully inspected
+	if f.scan then
+		local total, scanned = 0, 0
+		for unit in unit_iter() do
+			if unit and UnitExists(unit) and not UnitIsUnit(unit, "player") and UnitIsConnected(unit) then
+				total = total + 1
+				local guid = UnitGUID(unit)
+				local entry = guid and self.group_cache and self.group_cache[guid]
+				if entry and entry.spec and entry.spec > 0 then
+					scanned = scanned + 1
+				end
+			end
+		end
+		if total > 0 then
+			f.scan:SetText("|cff888888scan " .. scanned .. "/" .. total .. "|r")
+		else
+			f.scan:SetText("")
+		end
 	end
 end
 
