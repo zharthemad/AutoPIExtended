@@ -899,15 +899,29 @@ function AutoPIRemix:_EnsureTargetFrame()
 		AutoPIRemix.db.target_frame_pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
 
-	local icon = f:CreateTexture(nil, "ARTWORK")
-	icon:SetSize(36, 36)
-	icon:SetPoint("LEFT", 8, 0)
-	icon:SetTexture(C_Spell.GetSpellTexture(10060)) -- Power Infusion
-	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)        -- trim default icon border
+	-- Icon is a secure button so clicking it targets the PI target (works in combat)
+	local iconBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
+	iconBtn:SetSize(36, 36)
+	iconBtn:SetPoint("LEFT", 8, 0)
+	iconBtn:SetAttribute("type", "target")
+	iconBtn:SetAttribute("unit", "")
+	local icon = iconBtn:CreateTexture(nil, "ARTWORK")
+	icon:SetAllPoints()
+	icon:SetTexture(C_Spell.GetSpellTexture(10060))
+	icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+	iconBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	iconBtn:SetScript("OnEnter", function(btn)
+		GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
+		local t = AutoPIRemix._piTarget
+		GameTooltip:SetText(t and ("Target: " .. t) or "No PI target")
+		GameTooltip:Show()
+	end)
+	iconBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	f.icon = icon
+	f.iconBtn = iconBtn
 
 	local name = f:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	name:SetPoint("LEFT", icon, "RIGHT", 8, 8)
+	name:SetPoint("LEFT", iconBtn, "RIGHT", 8, 8)
 	name:SetJustifyH("LEFT")
 	f.name = name
 
@@ -960,6 +974,11 @@ function AutoPIRemix:_UpdateTargetFrame()
 		f.name:SetText(target)
 	else
 		f.name:SetText("|cff888888(focus / default)|r")
+	end
+
+	-- Keep the icon button's target in sync (SecureActionButtonTemplate handles the actual targeting)
+	if f.iconBtn and not InCombatLockdown() then
+		f.iconBtn:SetAttribute("unit", target or "")
 	end
 
 	local conf = self._piConfidence
