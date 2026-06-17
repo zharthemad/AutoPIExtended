@@ -13,15 +13,6 @@ AutoPIRemix.defaults = {
 	show_target_frame = true,
 }
 
-local function CreateIcon(icon, width, height, parent)
-	local f = CreateFrame("Frame", nil, parent)
-	f:SetSize(width, height)
-	f.tex = f:CreateTexture()
-	f.tex:SetAllPoints(f)
-	f.tex:SetTexture(icon)
-	return f
-end
-
 local function RegisterCanvas(frame)
 	local cat = Settings.RegisterCanvasLayoutCategory(frame, frame.name, frame.name);
 		Settings.RegisterAddOnCategory(cat)
@@ -94,7 +85,7 @@ function AutoPIRemix:CreateMultiLineTextBoxWithBackground(option, parent)
 	local this = self
     local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     frame:SetSize(420, 130)
-    frame:SetPoint("TOPLEFT", parent, "TOPLEFT", 10, -50)
+    -- Position is set by the caller (InitializeOptions).
 
     -- Add a background
     frame:SetBackdrop({
@@ -143,223 +134,178 @@ function AutoPIRemix:InitializeOptions()
 	mainScrollFrame:SetPoint("BOTTOMRIGHT", -32, 16)
 
 	local mainContent = CreateFrame("Frame", nil, mainScrollFrame)
-	mainContent:SetSize(600, 1000) -- Large enough to hold all content
+	mainContent:SetSize(600, 1900) -- tall enough for the full 40-row spec list
 	mainScrollFrame:SetScrollChild(mainContent)
 
-	-- Add trinkets section at the top
+	-- ===== Trinkets =====
 	local trinketsTitle = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
 	trinketsTitle:SetPoint("TOPLEFT", 0, 0)
 	trinketsTitle:SetText("Trinkets")
 
-	local trinket1CB = self:CreateCheckbox("trinket1", "Use Trinket 1 in macro", mainContent, function(value)
-		AutoPIRemix:rewriteMacro()
-	end)
+	local trinket1CB = self:CreateCheckbox("trinket1", "Use Trinket 1 in macro", mainContent, function() AutoPIRemix:rewriteMacro() end)
 	trinket1CB:SetPoint("TOPLEFT", trinketsTitle, "BOTTOMLEFT", 10, -10)
 
-	local trinket2CB = self:CreateCheckbox("trinket2", "Use Trinket 2 in macro", mainContent, function(value)
-		AutoPIRemix:rewriteMacro()
-	end)
+	local trinket2CB = self:CreateCheckbox("trinket2", "Use Trinket 2 in macro", mainContent, function() AutoPIRemix:rewriteMacro() end)
 	trinket2CB:SetPoint("LEFT", trinket1CB, "RIGHT", 200, 0)
 
 	local spell391109Info = C_Spell.GetSpellInfo(391109)
 	local spell228260Info = C_Spell.GetSpellInfo(228260)
 
-	local spell391109CB = self:CreateCheckbox("spell391109", "Cast " .. spell391109Info.name .. " if known", mainContent, function(value)
-		AutoPIRemix:rewriteMacro()
-	end)
+	local spell391109CB = self:CreateCheckbox("spell391109", "Cast " .. ((spell391109Info and spell391109Info.name) or "spell") .. " if known", mainContent, function() AutoPIRemix:rewriteMacro() end)
 	spell391109CB:SetPoint("TOPLEFT", trinket1CB, "BOTTOMLEFT", 0, -10)
 
-	local spell228260CB = self:CreateCheckbox("spell228260", "Cast " .. spell228260Info.name .. " if known", mainContent, function(value)
-		AutoPIRemix:rewriteMacro()
-	end)
+	local spell228260CB = self:CreateCheckbox("spell228260", "Cast " .. ((spell228260Info and spell228260Info.name) or "spell") .. " if known", mainContent, function() AutoPIRemix:rewriteMacro() end)
 	spell228260CB:SetPoint("LEFT", spell391109CB, "RIGHT", 200, 0)
 
-	-- Add players list section below
+	-- ===== Display =====
+	local hudCB = self:CreateCheckbox("show_target_frame", "Show on-screen PI target box", mainContent, function() AutoPIRemix:_UpdateTargetFrame() end)
+	hudCB:SetPoint("TOPLEFT", spell391109CB, "BOTTOMLEFT", 0, -10)
+
+	-- ===== Preferred Players =====
 	local playersTitle = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	playersTitle:SetPoint("TOPLEFT", spell391109CB, "BOTTOMLEFT", 0, -30)
-	playersTitle:SetText("Preferred Players (only character name), one by line")
+	playersTitle:SetPoint("TOPLEFT", hudCB, "BOTTOMLEFT", -10, -20)
+	playersTitle:SetText("Preferred Players (character name only, one per line)")
 
 	self.panel_main.playerslist = self:CreateMultiLineTextBoxWithBackground("playerslist", mainContent)
 	self.panel_main.playerslist:SetPoint("TOPLEFT", playersTitle, "BOTTOMLEFT", 0, -10)
 
-	-- Add specs list section below
-	local title = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	title:SetPoint("TOPLEFT", self.panel_main.playerslist, "BOTTOMLEFT", 0, -30)
-	title:SetText("Spec Order Configuration")
-
-
-	-- Weighted scoring section (spec order + ilvl)
+	-- ===== Target Scoring =====
 	local scoringTitle = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	scoringTitle:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -30)
+	scoringTitle:SetPoint("TOPLEFT", self.panel_main.playerslist, "BOTTOMLEFT", 0, -24)
 	scoringTitle:SetText("Target Scoring")
 
-	local baselineBox
-	local function UpdateBaselineEnabled()
-		if baselineBox and baselineBox.editBox then
-			if AutoPIRemix.db.ilvl_auto_baseline then
-				baselineBox.editBox:Disable()
-				baselineBox.editBox:SetAlpha(0.5)
-			else
-				baselineBox.editBox:Enable()
-				baselineBox.editBox:SetAlpha(1.0)
-			end
+	-- Forward declarations so the enable/disable helper can see every control.
+	local weightedCB, autoBaseCB, autoKCB, baselineBox, kBox, clampBox
+
+	local function setBoxEnabled(box, enabled)
+		if box and box.editBox then
+			box.editBox:SetEnabled(enabled)
+			box.editBox:SetAlpha(enabled and 1.0 or 0.5)
 		end
 	end
+	local function setCBEnabled(cb, enabled)
+		if not cb then return end
+		cb:SetEnabled(enabled)
+		cb:SetAlpha(enabled and 1.0 or 0.5)
+	end
+	-- Manual boxes are only relevant when weighted scoring is on AND the matching
+	-- auto-toggle is off. Clamp has no auto-toggle, so it follows weighted only.
+	local function UpdateScoringEnabled()
+		local weighted = AutoPIRemix.db.use_weighted_scoring
+		setCBEnabled(autoBaseCB, weighted)
+		setCBEnabled(autoKCB, weighted)
+		setBoxEnabled(baselineBox, weighted and not AutoPIRemix.db.ilvl_auto_baseline)
+		setBoxEnabled(kBox, weighted and not AutoPIRemix.db.ilvl_auto_k)
+		setBoxEnabled(clampBox, weighted)
+	end
 
-	local weightedCB = self:CreateCheckbox("use_weighted_scoring", "Use weighted scoring (spec order + item level)", mainContent, function()
+	weightedCB = self:CreateCheckbox("use_weighted_scoring", "Use weighted scoring (spec order + item level)", mainContent, function()
+		UpdateScoringEnabled()
 		AutoPIRemix:rewriteMacro()
 	end)
 	weightedCB:SetPoint("TOPLEFT", scoringTitle, "BOTTOMLEFT", 10, -10)
 
-	local autoBaseCB = self:CreateCheckbox("ilvl_auto_baseline", "Auto-detect baseline from group average ilvl", mainContent, function()
-		UpdateBaselineEnabled()
+	autoBaseCB = self:CreateCheckbox("ilvl_auto_baseline", "Auto-detect baseline from group average ilvl", mainContent, function()
+		UpdateScoringEnabled()
 		AutoPIRemix:rewriteMacro()
 	end)
 	autoBaseCB:SetPoint("TOPLEFT", weightedCB, "BOTTOMLEFT", 0, -6)
-local kBox
-local function UpdateKEnabled()
-	if kBox and kBox.editBox then
-		if AutoPIRemix.db.ilvl_auto_k then
-			kBox.editBox:Disable()
-			kBox.editBox:SetAlpha(0.5)
-		else
-			kBox.editBox:Enable()
-			kBox.editBox:SetAlpha(1.0)
-		end
-	end
-end
 
-local autoKCB = self:CreateCheckbox("ilvl_auto_k", "Auto-scale K from baseline (baseline*0.8, clamped 60-140)", mainContent, function()
-	UpdateKEnabled()
-	AutoPIRemix:rewriteMacro()
-end)
-autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
+	autoKCB = self:CreateCheckbox("ilvl_auto_k",
+		("Auto-scale K from baseline (baseline*%g, clamped %d-%d)"):format(self.K_MULTIPLIER, self.K_MIN, self.K_MAX),
+		mainContent, function()
+			UpdateScoringEnabled()
+			AutoPIRemix:rewriteMacro()
+		end)
+	autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 
+	baselineBox = self:CreateNumberBox("ilvl_baseline", ("Baseline ilvl (default %d)"):format(self.defaults.ilvl_baseline), mainContent, 240, function() AutoPIRemix:rewriteMacro() end)
+	baselineBox:SetPoint("TOPLEFT", autoKCB, "BOTTOMLEFT", 0, -12)
 
-
-	baselineBox = self:CreateNumberBox("ilvl_baseline", "Baseline ilvl", mainContent, 220, function() AutoPIRemix:rewriteMacro() end)
-	baselineBox:SetPoint("TOPLEFT", autoKCB, "BOTTOMLEFT", 0, -10)
-	UpdateBaselineEnabled()
-
-	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 260, function() AutoPIRemix:rewriteMacro() end)
+	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 240, function() AutoPIRemix:rewriteMacro() end)
 	kBox:SetPoint("LEFT", baselineBox, "RIGHT", 40, 0)
-	UpdateKEnabled()
 
+	clampBox = self:CreateNumberBox("ilvl_clamp", ("Clamp (max +/- score, default %.2f)"):format(self.defaults.ilvl_clamp), mainContent, 300, function() AutoPIRemix:rewriteMacro() end, true)
+	clampBox:SetPoint("TOPLEFT", baselineBox, "BOTTOMLEFT", 0, -12)
 
-	local clampBox = self:CreateNumberBox("ilvl_clamp", "Clamp (max +/- score)", mainContent, 260, function() AutoPIRemix:rewriteMacro() end, true)
-	clampBox:SetPoint("TOPLEFT", baselineBox, "BOTTOMLEFT", 0, -10)
+	UpdateScoringEnabled()
 
-		-- Spec-order section title (separate from the main title to avoid anchor cycles)
-		local specTitle = mainContent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
-		specTitle:SetText("Spec Priority Order")
-		specTitle:SetPoint("TOPLEFT", clampBox, "BOTTOMLEFT", -10, -30)
+	-- ===== Spec Priority Order =====
+	local specTitle = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
+	specTitle:SetPoint("TOPLEFT", clampBox, "BOTTOMLEFT", 0, -24)
+	specTitle:SetText("Spec Priority Order")
 
+	local infoText = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+	infoText:SetPoint("TOPLEFT", specTitle, "BOTTOMLEFT", 10, -10)
+	infoText:SetWidth(560)
+	infoText:SetJustifyH("LEFT")
+	infoText:SetText("Using the built-in bloodmallet Power Infusion order (single-target in raids, multitarget elsewhere). Update the addon periodically to keep it current, or click below to order specs yourself.")
 
+	-- Spec list container (manual mode only)
 	local content = CreateFrame("Frame", nil, mainContent)
-	content:SetSize(600, 800)
-	content:SetPoint("TOPLEFT", specTitle, "BOTTOMLEFT", 0, -10)
+	content:SetSize(560, 1250)
 
 	local function RefreshList()
-		for i, child in ipairs({content:GetChildren()}) do
-			child:Hide()
-		end
+		for _, child in ipairs({ content:GetChildren() }) do child:Hide() end
+		local order = AutoPIRemix.db.specIDs_order or {}
+		for i, specID in ipairs(order) do
+			local _, name, _, icon, _, _, className = GetSpecializationInfoByID(specID)
 
-		for i, specID in ipairs(AutoPIRemix.db.specIDs_order or {}) do
-			local id, name, desc, icon, role, classFile, className = GetSpecializationInfoByID(specID)
+			local row = CreateFrame("Frame", nil, content)
+			row:SetSize(540, 30)
+			row:SetPoint("TOPLEFT", 10, -((i - 1) * 30))
 
-			local line = content:CreateTexture(nil, "BACKGROUND")
-			local frame = CreateFrame("Frame", nil, content)
-			frame:SetSize(580, 30)
-			frame:SetPoint("TOPLEFT", 10, -((i - 1) * 30))
-
-			local upBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
+			local upBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
 			upBtn:SetSize(20, 20)
 			upBtn:SetPoint("LEFT", 5, 0)
 			upBtn:SetText("+")
-			if i == 1 then
-				upBtn:Hide()
-			end
+			if i == 1 then upBtn:Hide() end
 			upBtn:SetScript("OnClick", function()
 				if i > 1 then
-					AutoPIRemix.db.specIDs_order[i], AutoPIRemix.db.specIDs_order[i-1] = AutoPIRemix.db.specIDs_order[i-1], AutoPIRemix.db.specIDs_order[i]
-					RefreshList()
-				end
-			end)
-
-			local downBtn = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-			downBtn:SetSize(20, 20)
-			downBtn:SetPoint("LEFT", 30, 0)
-			downBtn:SetText("-")
-			if i == #AutoPIRemix.db.specIDs_order then
-				downBtn:Hide()
-			end
-			downBtn:SetScript("OnClick", function()
-				if i < #AutoPIRemix.db.specIDs_order then
-					AutoPIRemix.db.specIDs_order[i], AutoPIRemix.db.specIDs_order[i+1] = AutoPIRemix.db.specIDs_order[i+1], AutoPIRemix.db.specIDs_order[i]
+					order[i], order[i-1] = order[i-1], order[i]
 					AutoPIRemix:rewriteMacro()
 					RefreshList()
 				end
 			end)
 
-			local iconTexture = frame:CreateTexture(nil, "ARTWORK")
+			local downBtn = CreateFrame("Button", nil, row, "UIPanelButtonTemplate")
+			downBtn:SetSize(20, 20)
+			downBtn:SetPoint("LEFT", 30, 0)
+			downBtn:SetText("-")
+			if i == #order then downBtn:Hide() end
+			downBtn:SetScript("OnClick", function()
+				if i < #order then
+					order[i], order[i+1] = order[i+1], order[i]
+					AutoPIRemix:rewriteMacro()
+					RefreshList()
+				end
+			end)
+
+			local iconTexture = row:CreateTexture(nil, "ARTWORK")
 			iconTexture:SetSize(18, 18)
 			iconTexture:SetPoint("LEFT", downBtn, "RIGHT", 5, 0)
 			iconTexture:SetTexture(icon)
 
-			local label = frame:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+			local label = row:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 			label:SetPoint("LEFT", iconTexture, "RIGHT", 5, 0)
-			label:SetText(name .. " - " .. className)
+			label:SetText((name or ("specID " .. tostring(specID))) .. (className and (" - " .. className) or ""))
 		end
+		content:SetHeight(math.max(1, #order) * 30 + 10)
 	end
 
-	-- Create all UI elements at initialization
-	infoText = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormal")
-	infoText:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
-	infoText:SetText("Spec order by bloodmallet data. Please update the addon regularly to stay fresh. Or click the button below to order them yourself.")
-	infoText:SetWidth(580)
-
-	manualModeBtn = CreateFrame("Button", nil, mainContent, "UIPanelButtonTemplate")
-	manualModeBtn:SetSize(200, 30)
+	-- Auto/manual toggle. Both buttons share the slot directly under specTitle;
+	-- only one is shown at a time (infoText occupies that slot in auto mode).
+	local manualModeBtn = CreateFrame("Button", nil, mainContent, "UIPanelButtonTemplate")
+	manualModeBtn:SetSize(200, 26)
 	manualModeBtn:SetPoint("TOPLEFT", infoText, "BOTTOMLEFT", 0, -10)
 	manualModeBtn:SetText("Order Specs Manually")
-	manualModeBtn:SetScript("OnClick", function()
-		AutoPIRemix.db.use_bloodmallet_spec_ids = false
-		if not AutoPIRemix.db.specIDs_order or #AutoPIRemix.db.specIDs_order == 0 then
-			AutoPIRemix.db.specIDs_order = {}
-			for _, specID in ipairs(AutoPIRemix.bloodmallet_spec_ids) do
-				table.insert(AutoPIRemix.db.specIDs_order, specID)
-			end
-		end
-		infoText:Hide()
-		manualModeBtn:Hide()
-		autoModeBtn:Show()
-		content:Show()
-		content:SetPoint("TOPLEFT", autoModeBtn, "BOTTOMLEFT", 0, -10)
-		RefreshList()
-		AutoPIRemix:rewriteMacro()
-	end)
 
-	autoModeBtn = CreateFrame("Button", nil, mainContent, "UIPanelButtonTemplate")
-	autoModeBtn:SetSize(200, 30)
-	autoModeBtn:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
+	local autoModeBtn = CreateFrame("Button", nil, mainContent, "UIPanelButtonTemplate")
+	autoModeBtn:SetSize(200, 26)
+	autoModeBtn:SetPoint("TOPLEFT", specTitle, "BOTTOMLEFT", 10, -10)
 	autoModeBtn:SetText("Use Automatic Ordering")
-	autoModeBtn:SetScript("OnClick", function()
-		AutoPIRemix.db.use_bloodmallet_spec_ids = true
-		content:Hide()
-		autoModeBtn:Hide()
-		manualModeBtn:Show()
-		infoText:Show()
-		AutoPIRemix:rewriteMacro()
-	end)
 
-	local function ShowManualMode()
-		content:Show()
-		infoText:Hide()
-		manualModeBtn:Hide()
-		autoModeBtn:Show()
-		content:SetPoint("TOPLEFT", autoModeBtn, "BOTTOMLEFT", 0, -10)
-		RefreshList()
-	end
+	content:SetPoint("TOPLEFT", autoModeBtn, "BOTTOMLEFT", 0, -10)
 
 	local function ShowAutomaticMode()
 		content:Hide()
@@ -368,13 +314,37 @@ autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 		manualModeBtn:Show()
 	end
 
+	local function ShowManualMode()
+		infoText:Hide()
+		manualModeBtn:Hide()
+		autoModeBtn:Show()
+		content:Show()
+		RefreshList()
+	end
+
+	manualModeBtn:SetScript("OnClick", function()
+		AutoPIRemix.db.use_bloodmallet_spec_ids = false
+		if not AutoPIRemix.db.specIDs_order or #AutoPIRemix.db.specIDs_order == 0 then
+			AutoPIRemix.db.specIDs_order = {}
+			for _, specID in ipairs(AutoPIRemix.bloodmallet_spec_ids) do
+				table.insert(AutoPIRemix.db.specIDs_order, specID)
+			end
+		end
+		ShowManualMode()
+		AutoPIRemix:rewriteMacro()
+	end)
+
+	autoModeBtn:SetScript("OnClick", function()
+		AutoPIRemix.db.use_bloodmallet_spec_ids = true
+		ShowAutomaticMode()
+		AutoPIRemix:rewriteMacro()
+	end)
+
 	if AutoPIRemix.db.use_bloodmallet_spec_ids then
 		ShowAutomaticMode()
 	else
 		ShowManualMode()
 	end
-
-	RefreshList()
 
 	RegisterCanvas(self.panel_main)
 end

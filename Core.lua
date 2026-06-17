@@ -125,6 +125,12 @@ AutoPIRemix.SCAN_INTERVAL = 4
 -- How long we trust a cached spec before refreshing (seconds)
 AutoPIRemix.CACHE_TTL = 60
 
+-- Auto-K scaling: K = baseline * K_MULTIPLIER, clamped to [K_MIN, K_MAX].
+-- Shared so the options label can be generated from these (never drifts).
+AutoPIRemix.K_MULTIPLIER = 0.8
+AutoPIRemix.K_MIN = 60
+AutoPIRemix.K_MAX = 240
+
 function AutoPIRemix:isDPS(specID)
 	local _, _, _, _, role = GetSpecializationInfoByID(specID)
 	return role == "DAMAGER"
@@ -198,12 +204,12 @@ function AutoPIRemix:_ComputeEffectiveK(baseline)
 	end
 
 	local b = tonumber(baseline) or 0
-	local k = b * 0.8
+	local k = b * self.K_MULTIPLIER
 	-- Keep K sane across scaling contexts
-	if k < 60 then k = 60 end
-	if k > 240 then k = 240 end
+	if k < self.K_MIN then k = self.K_MIN end
+	if k > self.K_MAX then k = self.K_MAX end
 	self._last_k_used = k
-	self._last_k_source = "auto(baseline*0.8 clamped 60-240)"
+	self._last_k_source = ("auto(baseline*%g clamped %d-%d)"):format(self.K_MULTIPLIER, self.K_MIN, self.K_MAX)
 	return k, self._last_k_source
 end
 
