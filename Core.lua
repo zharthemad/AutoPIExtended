@@ -314,7 +314,7 @@ function AutoPIRemix:_ResetCaches()
 	self.inspectLastRequestAt = nil
 	self.inspectCurrent = nil -- {guid=..., unit=..., name=...}
 	self._inspectTimeoutToken = 0
-	self._scanAnnounceDone = false
+	self._lastAnnouncedTarget = nil
 end
 
 function AutoPIRemix:_RemoveGuid(guid)
@@ -472,11 +472,8 @@ function AutoPIRemix:INSPECT_READY(event, guid)
 	-- Process next, slightly delayed to respect throttle
 	C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
 
-	-- Announce winner the first time the queue fully drains this session
-	if not self._scanAnnounceDone and not self.inspectQueue[1] then
-		self._scanAnnounceDone = true
-		self:_AnnounceWinner()
-	end
+	-- Once the queue drains, announce the winner if it changed
+	self:_MaybeAnnounceWinner()
 end
 
 function AutoPIRemix:_AnnounceWinner()
@@ -498,6 +495,22 @@ function AutoPIRemix:_AnnounceWinner()
 	                or (conf ~= "" and (" (" .. conf .. ")"))
 	                or ""
 	SendChatMessage("PI target: " .. target .. suffix, channel)
+end
+
+-- Announce the winner only when scanning has settled and the target actually
+-- changed since the last announcement (so joins/leaves re-announce, but a
+-- steady target doesn't spam group chat).
+function AutoPIRemix:_MaybeAnnounceWinner()
+	if self.inspectInProgress or self.inspectQueue[1] then return end -- still scanning
+
+	local target = self._piTarget
+	local current = (target and target ~= "") and target or nil
+	if current == self._lastAnnouncedTarget then return end
+
+	self._lastAnnouncedTarget = current
+	if current then
+		self:_AnnounceWinner()
+	end
 end
 
 function AutoPIRemix:_StartScanner()
@@ -555,15 +568,21 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 end
 
 function AutoPIRemix:GROUP_ROSTER_UPDATE()
-	-- Rebuild roster + kick a scan soon
+	-- Rebuild roster + kick a scan soon. After it settles, recompute the winner
+	-- and re-announce if it changed (covers leavers that need no new inspect).
 	self:_RebuildRoster()
-	C_Timer.After(0.5, function() self:_ScanGroupForSpecs() end)
+	C_Timer.After(0.5, function()
+		self:_ScanGroupForSpecs()
+		self:rewriteMacro()
+		self:_MaybeAnnounceWinner()
+	end)
 end
 
 function AutoPIRemix:PLAYER_ENTERING_WORLD()
 	-- Instance/zone changed: the active ranking (raid vs M+) may differ, so
 	-- refresh the macro and rescan the group shortly after the world loads.
-	self._scanAnnounceDone = false
+	-- Clear the last-announced target so a fresh instance re-announces.
+	self._lastAnnouncedTarget = nil
 	C_Timer.After(1.0, function()
 		self:rewriteMacro()
 		self:_ScanGroupForSpecs()
