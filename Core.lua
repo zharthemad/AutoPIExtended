@@ -497,6 +497,14 @@ function AutoPIRemix:_AnnounceWinner()
 	SendChatMessage("PI target: " .. target .. suffix, channel)
 end
 
+-- Force an announcement of the current target (manual HUD button). Syncs the
+-- last-announced target so the auto logic won't immediately repeat it.
+function AutoPIRemix:_ForceAnnounceWinner()
+	local t = self._piTarget
+	self._lastAnnouncedTarget = (t and t ~= "") and t or nil
+	self:_AnnounceWinner()
+end
+
 -- Announce the winner only when scanning has settled and the target actually
 -- changed since the last announcement (so joins/leaves re-announce, but a
 -- steady target doesn't spam group chat).
@@ -1002,6 +1010,26 @@ function AutoPIRemix:_EnsureTargetFrame()
 	end)
 	dbgBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 	f.dbgBtn = dbgBtn
+
+	-- Announce button, just left of the debug button: re-sends the current target
+	local annBtn = CreateFrame("Button", nil, f)
+	annBtn:SetSize(20, 14)
+	annBtn:SetPoint("TOPRIGHT", dbgBtn, "TOPLEFT", -4, 0)
+	local annBg = annBtn:CreateTexture(nil, "BACKGROUND")
+	annBg:SetAllPoints()
+	annBg:SetColorTexture(0.15, 0.4, 0.15, 0.8)
+	local annLabel = annBtn:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
+	annLabel:SetAllPoints()
+	annLabel:SetText("A")
+	annBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+	annBtn:SetScript("OnClick", function() AutoPIRemix:_ForceAnnounceWinner() end)
+	annBtn:SetScript("OnEnter", function(btn)
+		GameTooltip:SetOwner(btn, "ANCHOR_BOTTOM")
+		GameTooltip:SetText("Announce PI target to group")
+		GameTooltip:Show()
+	end)
+	annBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	f.annBtn = annBtn
 
 	self.targetFrame = f
 	return f
