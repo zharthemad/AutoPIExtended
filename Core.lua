@@ -491,10 +491,9 @@ function AutoPIRemix:_AnnounceWinner()
 	end
 
 	local conf = self._piConfidence or ""
-	local suffix = (conf == "preferred") and " (preferred)"
-	                or (conf ~= "" and (" (" .. conf .. ")"))
-	                or ""
-	SendChatMessage("PI target: " .. target .. suffix, channel)
+	local word = ({ HIGH = "high", MED = "medium", LOW = "low" })[conf] or conf
+	local suffix = (word ~= "") and (" (confidence: " .. word .. ")") or ""
+	SendChatMessage("AutoPI Remix: PI Target: " .. target .. suffix, channel)
 end
 
 -- Force an announcement of the current target (manual HUD button). Syncs the
@@ -1003,7 +1002,11 @@ function AutoPIRemix:_EnsureTargetFrame()
 	iconBtn:SetScript("OnEnter", function(btn)
 		GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
 		local t = AutoPIRemix._piTarget
-		GameTooltip:SetText(t and ("Target: " .. t) or "No PI target")
+		if t then
+			GameTooltip:SetText("Click to target " .. t)
+		else
+			GameTooltip:SetText("No PI target")
+		end
 		GameTooltip:Show()
 	end)
 	iconBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
