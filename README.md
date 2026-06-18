@@ -139,7 +139,7 @@ squishes.
 
 ## Status
 
-Updated for WoW **12.0.5** (Midnight). See open items in the issue tracker /
+Updated for WoW **12.0.7** (Midnight). See open items in the issue tracker /
 handoff notes.
 
 ## Credits
