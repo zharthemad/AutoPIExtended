@@ -615,7 +615,6 @@ function AutoPIRemix:rewriteMacro()
 	self._piDelta = nil
 
 	-- First check preferred players (manual named-character list), if in DPS spec
-	local hasNamedList = ((self.db.playerslist or ""):match("%S")) ~= nil
 	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
 		local guid = self.name_cache[name:lower()]
 		if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
@@ -664,15 +663,20 @@ function AutoPIRemix:rewriteMacro()
 			return nil
 		end
 
-		-- A configured named-character list with nobody present falls back to the
-		-- auto Bloodmallet list, regardless of the spec-order mode setting.
-		if hasNamedList then
-			targetname = selectFromList(self:_ActiveBloodmalletList())
-			if targetname then self._piConfidence = "auto-fallback" end
-		elseif self.db.use_bloodmallet_spec_ids then
-			targetname = selectFromList(self:_ActiveBloodmalletList())
-		else
+		-- Priority: manual spec-order list (if enabled), then the auto Bloodmallet
+		-- list as the final fallback.
+		if not self.db.use_bloodmallet_spec_ids then
 			targetname = selectFromList(self.db.specIDs_order)
+		end
+		if not targetname then
+			local viaAuto = selectFromList(self:_ActiveBloodmalletList())
+			if viaAuto then
+				-- Only an actual fallback when manual mode was on but matched no one.
+				if not self.db.use_bloodmallet_spec_ids then
+					self._piConfidence = "auto-fallback"
+				end
+				targetname = viaAuto
+			end
 		end
 	end
 
@@ -724,13 +728,8 @@ function AutoPIRemix:_BuildDebugLines()
 	local lines = {}
 	local function add(s) lines[#lines + 1] = s end
 
-	-- Mirror rewriteMacro: a configured named-character list forces the auto list.
-	local hasNamedList = ((self.db.playerslist or ""):match("%S")) ~= nil
 	local list, listLabel
-	if hasNamedList then
-		list, listLabel = self:_ActiveBloodmalletList()
-		listLabel = (listLabel or "auto") .. " (named-list fallback)"
-	elseif self.db.use_bloodmallet_spec_ids then
+	if self.db.use_bloodmallet_spec_ids then
 		list, listLabel = self:_ActiveBloodmalletList()
 	else
 		list, listLabel = self.db.specIDs_order, "manual order"
@@ -739,7 +738,6 @@ function AutoPIRemix:_BuildDebugLines()
 		add("no spec order list configured.")
 		return lines
 	end
-	add("spec list = " .. (listLabel or "?"))
 
 	-- Build rank map
 	local rank = {}
@@ -757,6 +755,23 @@ function AutoPIRemix:_BuildDebugLines()
 		baseline = tonumber(self.db.ilvl_baseline) or self._last_baseline_used or 0
 		baselineSource = baselineSource or "manual/fallback"
 	end
+
+	-- Mirror rewriteMacro: if the manual spec-order list matches no group DPS,
+	-- fall back to the auto Bloodmallet list.
+	if not self.db.use_bloodmallet_spec_ids then
+		local preScores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
+		if not preScores or #preScores == 0 then
+			local autoList, autoLabel = self:_ActiveBloodmalletList()
+			if autoList and #autoList > 0 then
+				list = autoList
+				listLabel = (autoLabel or "auto") .. " (manual had no match, fell back)"
+				rank = {}
+				for i, specID in ipairs(list) do rank[specID] = i end
+				N = #list
+			end
+		end
+	end
+	add("spec list = " .. (listLabel or "?"))
 
 	-- Group inspection coverage (DPS only)
 	local dpsTotal, dpsInspected = 0, 0
