@@ -992,6 +992,8 @@ function AutoPIRemix:_EnsureTargetFrame()
 	local iconBtn = CreateFrame("Button", nil, f, "SecureActionButtonTemplate")
 	iconBtn:SetSize(36, 36)
 	iconBtn:SetPoint("LEFT", 8, 0)
+	-- Fire on both up and down so cast-on-key-down users still trigger the action.
+	iconBtn:RegisterForClicks("AnyUp", "AnyDown")
 	iconBtn:SetAttribute("type", "target")
 	iconBtn:SetAttribute("unit", "")
 	local icon = iconBtn:CreateTexture(nil, "ARTWORK")
