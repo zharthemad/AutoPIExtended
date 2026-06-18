@@ -9,6 +9,9 @@ currently selected target.
 > so you cast PI normally while remaining compliant with Blizzard's protected
 > action restrictions.
 
+The addon loads only for **Priests** — it stays completely inert for every other
+class (no database, no events, no macro).
+
 ## How it works
 
 Target selection combines:
@@ -39,12 +42,25 @@ matches your current content:
 
 The active list switches automatically on instance/zone changes, and the live
 debug window (`/apir debug`) shows which one is in use. If you switch to the
-manual spec-order editor, your custom order is used instead, regardless of
-content.
+manual spec-order editor, your custom order is used instead.
 
-> These rankings are static snapshots of Bloodmallet's sims. Bloodmallet re-sims
-> each patch, so the lists drift over time and want a periodic manual refresh
-> (WoW addons can't fetch the data at runtime).
+> These rankings are static snapshots of Bloodmallet's sims (last refreshed
+> 2026-06-17, SimC `9f3b11b`). Bloodmallet re-sims each patch, so the lists drift
+> over time and want a periodic manual refresh (WoW addons can't fetch the data
+> at runtime).
+
+### Selection priority
+
+Target selection resolves in this order, falling through when a step finds no
+eligible player:
+
+1. **Preferred-player list** — a character you named (one per line in settings)
+   who is currently in the group in a DPS spec.
+2. **Manual spec-order list** — if you've switched to the manual editor.
+3. **Auto Bloodmallet list** — the content-aware ranking, used as the final
+   fallback. If a manual spec-order list is configured but nobody in the group
+   matches it, selection falls back to the auto list (shown as `auto-fallback`
+   confidence).
 
 ### Macro management
 
@@ -77,9 +93,28 @@ active spec list stays correct.
 
 A small draggable box shows the **Power Infusion icon**, the **current PI target**,
 and the **selection confidence** (HIGH / MED / LOW, colored, with the score gap
-to the runner-up; "preferred player" when chosen from your preferred list). Drag
-it anywhere — its position is saved between sessions. Toggle it with `/apir hud`.
-It's shown by default.
+to the runner-up; "preferred player" when chosen from your preferred list,
+"auto-fallback" when the manual list matched no one). Drag it anywhere — its
+position is saved between sessions. Toggle it with `/apir hud`. It's shown by
+default.
+
+It also includes:
+
+- **Scan progress** (`xx/yy`) — how many group DPS have been inspected out of the
+  total to scan.
+- **Clickable PI icon** — clicking it targets the current PI recipient (uses a
+  secure button so it works in combat).
+- **`A` button** — re-announces the current PI target to chat (handy when a priest
+  joins late and missed the automatic announcement).
+- **`D` button** — opens the live debug window.
+
+## Chat announcements
+
+Once scanning finishes (all currently available characters inspected), the addon
+announces the current PI target to your group — **instance chat** in LFG/LFR,
+otherwise **raid** or **party** chat. It re-announces when the target changes
+(e.g. roster changes) so other priests know who you're infusing, without spamming
+when nothing has changed. Use the HUD **`A`** button to re-send on demand.
 
 ## Configuration
 
@@ -88,7 +123,7 @@ The settings panel exposes (top to bottom):
 - **Trinkets / spells** folded into the macro.
 - **Show on-screen PI target box** toggle.
 - **Preferred-player list** (character names, one per line) that take priority
-  when in a DPS spec.
+  when in a DPS spec (step 1 of [Selection priority](#selection-priority)).
 - **Target Scoring** — weighted-scoring toggle, plus auto/manual **baseline** and
   **K**, and the item-level **clamp**. The manual boxes dim when their auto-toggle
   is on (and all dim when weighted scoring is off).
