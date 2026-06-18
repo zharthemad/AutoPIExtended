@@ -614,7 +614,7 @@ function AutoPIRemix:rewriteMacro()
 	self._piConfidence = nil
 	self._piDelta = nil
 
-	-- First check preferred players, if in DPS spec
+	-- First check preferred players (manual named-character list), if in DPS spec
 	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
 		local guid = self.name_cache[name:lower()]
 		if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
@@ -626,15 +626,17 @@ function AutoPIRemix:rewriteMacro()
 
 	-- If no preferred player found, select from DPS specs
 	if not targetname then
-		local list = self.db.use_bloodmallet_spec_ids and self:_ActiveBloodmalletList() or self.db.specIDs_order
-		if list then
+		-- Score the group against a single spec-priority list and return the
+		-- winning player name (or nil if no group DPS matches any spec in it).
+		-- Sets self._piDelta / self._piConfidence as a side effect.
+		local function selectFromList(list)
+			if not list then return nil end
 			-- Build rank map (specID -> rank)
 			local rank = {}
 			for i, specID in ipairs(list) do rank[specID] = i end
 			local N = #list
 
-
-			local baseline, baselineSource = self:_ComputeAutoBaseline()
+			local baseline = self:_ComputeAutoBaseline()
 			local K_manual = tonumber(self.db.ilvl_k) or 100
 			if K_manual == 0 then K_manual = 100 end
 			local K = (self._ComputeEffectiveK and select(1, self:_ComputeEffectiveK(baseline))) or K_manual
@@ -643,21 +645,37 @@ function AutoPIRemix:rewriteMacro()
 
 			local scores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 			if scores and scores[1] then
-				targetname = scores[1].name
 				local delta = scores[2] and ((scores[1].total or 0) - (scores[2].total or 0)) or (scores[1].total or 0)
 				self._piDelta = delta
 				self._piConfidence = (delta >= 0.08 and "HIGH") or (delta >= 0.04 and "MED") or "LOW"
+				return scores[1].name
 			end
 
 			-- Fallback to pure spec order if weighted scoring is disabled AND we didn't find anything via iteration
-			if not targetname and not self.db.use_weighted_scoring then
+			if not self.db.use_weighted_scoring then
 				for _, specID in ipairs(list) do
 					if self.spec_cache[specID] and next(self.spec_cache[specID]) then
 						local _, name = next(self.spec_cache[specID])
-						targetname = name
-						break
+						return name
 					end
 				end
+			end
+			return nil
+		end
+
+		-- Priority: manual spec-order list (if enabled), then the auto Bloodmallet
+		-- list as the final fallback.
+		if not self.db.use_bloodmallet_spec_ids then
+			targetname = selectFromList(self.db.specIDs_order)
+		end
+		if not targetname then
+			local viaAuto = selectFromList(self:_ActiveBloodmalletList())
+			if viaAuto then
+				-- Only an actual fallback when manual mode was on but matched no one.
+				if not self.db.use_bloodmallet_spec_ids then
+					self._piConfidence = "auto-fallback"
+				end
+				targetname = viaAuto
 			end
 		end
 	end
@@ -720,7 +738,6 @@ function AutoPIRemix:_BuildDebugLines()
 		add("no spec order list configured.")
 		return lines
 	end
-	add("spec list = " .. (listLabel or "?"))
 
 	-- Build rank map
 	local rank = {}
@@ -738,6 +755,23 @@ function AutoPIRemix:_BuildDebugLines()
 		baseline = tonumber(self.db.ilvl_baseline) or self._last_baseline_used or 0
 		baselineSource = baselineSource or "manual/fallback"
 	end
+
+	-- Mirror rewriteMacro: if the manual spec-order list matches no group DPS,
+	-- fall back to the auto Bloodmallet list.
+	if not self.db.use_bloodmallet_spec_ids then
+		local preScores = self:_ComputeCandidateScores(list, rank, N, baseline, K, c)
+		if not preScores or #preScores == 0 then
+			local autoList, autoLabel = self:_ActiveBloodmalletList()
+			if autoList and #autoList > 0 then
+				list = autoList
+				listLabel = (autoLabel or "auto") .. " (manual had no match, fell back)"
+				rank = {}
+				for i, specID in ipairs(list) do rank[specID] = i end
+				N = #list
+			end
+		end
+	end
+	add("spec list = " .. (listLabel or "?"))
 
 	-- Group inspection coverage (DPS only)
 	local dpsTotal, dpsInspected = 0, 0
