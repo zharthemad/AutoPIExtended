@@ -676,13 +676,26 @@ function AutoPIExtended:rewriteMacro()
 	self._piDelta = nil
 	self._piRunnerUp = nil
 
-	-- First check preferred players (manual named-character list), if in DPS spec
-	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
-		local guid = self.name_cache[name:lower()]
-		if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
-			targetname = self.group_cache[guid].name
-			self._piConfidence = "preferred"
-			break
+	-- First check preferred players (manual named-character list).
+	-- No inspect required — the user has explicitly chosen these targets and their
+	-- order, so we trust the list and only verify the player is currently in the group.
+	-- Build a present-in-group lookup (name lower -> actual name) without inspect data.
+	local present = {}
+	for unit in unit_iter() do
+		if unit and UnitExists(unit) and UnitIsConnected(unit) and not UnitIsUnit(unit, "player") then
+			local n = UnitName(unit)
+			if n then present[n:lower()] = n end
+		end
+	end
+	for line in (self.db.playerslist or ""):gmatch("[^\n]+") do
+		local name = line:gsub("^%s+", ""):gsub("%s+$", ""):match("^[^-]+")
+		if name and name ~= "" then
+			local actual = present[name:lower()]
+			if actual then
+				targetname = actual
+				self._piConfidence = "preferred"
+				break
+			end
 		end
 	end
 
