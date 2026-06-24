@@ -1,10 +1,10 @@
-AutoPIRemix = CreateFrame("Frame")
+AutoPIExtended = CreateFrame("Frame")
 
-function AutoPIRemix:OnEvent(event, ...)
+function AutoPIExtended:OnEvent(event, ...)
 	self[event](self, event, ...)
 end
-AutoPIRemix:SetScript("OnEvent", AutoPIRemix.OnEvent)
-AutoPIRemix:RegisterEvent("ADDON_LOADED")
+AutoPIExtended:SetScript("OnEvent", AutoPIExtended.OnEvent)
+AutoPIExtended:RegisterEvent("ADDON_LOADED")
 
 -- Bloodmallet "Power Infusion" rankings, ordered by absolute DPS gained from PI
 -- (the website chart's default "absolute" sort = bloodmallet sorted_data_keys_2),
@@ -14,7 +14,7 @@ AutoPIRemix:RegisterEvent("ADDON_LOADED")
 -- The active list is chosen by content type (see _ActiveBloodmalletList).
 --
 -- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-06-17 (SimC 9f3b11b).
-AutoPIRemix.bloodmallet_spec_ids = {
+AutoPIExtended.bloodmallet_spec_ids = {
 	63,   -- Fire Mage
 	254,  -- Marksmanship Hunter
 	269,  -- Windwalker Monk
@@ -60,7 +60,7 @@ AutoPIRemix.bloodmallet_spec_ids = {
 
 -- MULTITARGET (M+, dungeons, everything non-raid): "Castingpatchwerk5"
 -- (5-target), sim'd 2026-06-17 (SimC 9f3b11b). Same parked tail.
-AutoPIRemix.bloodmallet_spec_ids_multitarget = {
+AutoPIExtended.bloodmallet_spec_ids_multitarget = {
 	266,  -- Demonology Warlock
 	269,  -- Windwalker Monk
 	63,   -- Fire Mage
@@ -107,7 +107,7 @@ AutoPIRemix.bloodmallet_spec_ids_multitarget = {
 -- Pick the bloodmallet ranking that matches current content:
 -- single-target in a raid instance, multitarget (AoE) everywhere else
 -- (M+, dungeons, scenarios, open world).
-function AutoPIRemix:_ActiveBloodmalletList()
+function AutoPIExtended:_ActiveBloodmalletList()
 	local _, instanceType = IsInInstance()
 	if instanceType == "raid" then
 		return self.bloodmallet_spec_ids, "single-target (raid)"
@@ -121,17 +121,17 @@ end
 -- ------------------------------------------------------------
 
 -- How often to rescan group for missing/stale spec info (seconds)
-AutoPIRemix.SCAN_INTERVAL = 4
+AutoPIExtended.SCAN_INTERVAL = 4
 -- How long we trust a cached spec before refreshing (seconds)
-AutoPIRemix.CACHE_TTL = 60
+AutoPIExtended.CACHE_TTL = 60
 
 -- Auto-K scaling: K = baseline * K_MULTIPLIER, clamped to [K_MIN, K_MAX].
 -- Shared so the options label can be generated from these (never drifts).
-AutoPIRemix.K_MULTIPLIER = 0.8
-AutoPIRemix.K_MIN = 60
-AutoPIRemix.K_MAX = 240
+AutoPIExtended.K_MULTIPLIER = 0.8
+AutoPIExtended.K_MIN = 60
+AutoPIExtended.K_MAX = 240
 
-function AutoPIRemix:isDPS(specID)
+function AutoPIExtended:isDPS(specID)
 	local _, _, _, _, role = GetSpecializationInfoByID(specID)
 	return role == "DAMAGER"
 end
@@ -160,7 +160,7 @@ end
 -- Scoring helpers (spec order + inspect ilvl)
 -- ------------------------------------------------------------
 
-function AutoPIRemix:_ComputeAutoBaseline()
+function AutoPIExtended:_ComputeAutoBaseline()
 	-- Returns baseline, sourceString
 	local manual = tonumber(self.db.ilvl_baseline) or 0
 	if not self.db.ilvl_auto_baseline then
@@ -193,7 +193,7 @@ function AutoPIRemix:_ComputeAutoBaseline()
 	return manual, "manual(fallback)"
 end
 
-function AutoPIRemix:_ComputeEffectiveK(baseline)
+function AutoPIExtended:_ComputeEffectiveK(baseline)
 	local manualK = tonumber(self.db.ilvl_k) or 100
 	if manualK == 0 then manualK = 100 end
 
@@ -213,7 +213,7 @@ function AutoPIRemix:_ComputeEffectiveK(baseline)
 	return k, self._last_k_source
 end
 
-function AutoPIRemix:_IlvlToTrackLabel(ilvl)
+function AutoPIExtended:_IlvlToTrackLabel(ilvl)
 	local x = tonumber(ilvl) or 0
 	-- Midnight Season 1 (12.0.5) gear upgrade tracks. Each track has 6 ranks;
 	-- adjacent tracks overlap at shared item levels (shown as "A / B").
@@ -250,7 +250,7 @@ function AutoPIRemix:_IlvlToTrackLabel(ilvl)
 	return bestLabel
 end
 
-function AutoPIRemix:_ComputeCandidateScores(list, rank, N, baseline, K, c)
+function AutoPIExtended:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 	local function clamp(x, lo, hi)
 		if x < lo then return lo end
 		if x > hi then return hi end
@@ -301,7 +301,7 @@ function AutoPIRemix:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 	return out
 end
 
-function AutoPIRemix:_ResetCaches()
+function AutoPIExtended:_ResetCaches()
 	self.group_cache = {}   -- [guid] = { name=..., spec=..., ts=... }
 	self.name_cache = {}    -- [lower(name)] = guid
 	self.spec_cache = {}    -- [specID] = { [guid]=name, ... }
@@ -317,7 +317,7 @@ function AutoPIRemix:_ResetCaches()
 	self._lastAnnouncedTarget = nil
 end
 
-function AutoPIRemix:_RemoveGuid(guid)
+function AutoPIExtended:_RemoveGuid(guid)
 	local entry = self.group_cache[guid]
 	if not entry then return end
 	self.name_cache[(entry.name or ""):lower()] = nil
@@ -330,7 +330,7 @@ function AutoPIRemix:_RemoveGuid(guid)
 	self.group_cache[guid] = nil
 end
 
-function AutoPIRemix:_UpsertGuidSpec(guid, name, specID)
+function AutoPIExtended:_UpsertGuidSpec(guid, name, specID)
 	if not guid or not name or not specID or specID <= 0 then return end
 
 	-- Remove previous spec mapping if changed
@@ -347,7 +347,7 @@ function AutoPIRemix:_UpsertGuidSpec(guid, name, specID)
 	self.spec_cache[specID][guid] = name
 end
 
-function AutoPIRemix:_RebuildRoster()
+function AutoPIExtended:_RebuildRoster()
 	-- Remove anyone no longer in group
 	local still = {}
 
@@ -365,7 +365,7 @@ function AutoPIRemix:_RebuildRoster()
 	end
 end
 
-function AutoPIRemix:_QueueInspect(guid, unit)
+function AutoPIExtended:_QueueInspect(guid, unit)
 	-- Avoid duplicates / already have pending
 	for _, item in ipairs(self.inspectQueue) do
 		if item.guid == guid then return end
@@ -374,7 +374,7 @@ function AutoPIRemix:_QueueInspect(guid, unit)
 	table.insert(self.inspectQueue, { guid = guid, unit = unit })
 end
 
-function AutoPIRemix:_ScanGroupForSpecs()
+function AutoPIExtended:_ScanGroupForSpecs()
 	if InCombatLockdown() then return end
 	if not (IsInGroup() or IsInRaid()) then return end
 
@@ -398,7 +398,7 @@ function AutoPIRemix:_ScanGroupForSpecs()
 	self:_ProcessInspectQueue()
 end
 
-function AutoPIRemix:_ProcessInspectQueue()
+function AutoPIExtended:_ProcessInspectQueue()
 	if self.inspectInProgress then return end
 	if InCombatLockdown() then return end
 	if not self.inspectQueue[1] then return end
@@ -443,7 +443,7 @@ function AutoPIRemix:_ProcessInspectQueue()
 	end)
 end
 
-function AutoPIRemix:INSPECT_READY(event, guid)
+function AutoPIExtended:INSPECT_READY(event, guid)
 	-- Only accept the inspect we initiated
 	if not self.inspectPending or guid ~= self.inspectPending.guid then return end
 
@@ -476,7 +476,7 @@ function AutoPIRemix:INSPECT_READY(event, guid)
 	self:_MaybeAnnounceWinner()
 end
 
-function AutoPIRemix:_AnnounceWinner()
+function AutoPIExtended:_AnnounceWinner()
 	local target = self._piTarget
 	if not target or target == "" then return end
 	if not (IsInGroup() or IsInRaid()) then return end
@@ -493,12 +493,12 @@ function AutoPIRemix:_AnnounceWinner()
 	local conf = self._piConfidence or ""
 	local word = ({ HIGH = "high", MED = "medium", LOW = "low" })[conf] or conf
 	local suffix = (word ~= "") and (" (confidence: " .. word .. ")") or ""
-	SendChatMessage("AutoPI Remix: PI Target: " .. target .. suffix, channel)
+	SendChatMessage("AutoPI Extended: PI Target: " .. target .. suffix, channel)
 end
 
 -- Force an announcement of the current target (manual HUD button). Syncs the
 -- last-announced target so the auto logic won't immediately repeat it.
-function AutoPIRemix:_ForceAnnounceWinner()
+function AutoPIExtended:_ForceAnnounceWinner()
 	local t = self._piTarget
 	self._lastAnnouncedTarget = (t and t ~= "") and t or nil
 	self:_AnnounceWinner()
@@ -507,7 +507,7 @@ end
 -- Announce the winner only when scanning has settled and the target actually
 -- changed since the last announcement (so joins/leaves re-announce, but a
 -- steady target doesn't spam group chat).
-function AutoPIRemix:_MaybeAnnounceWinner()
+function AutoPIExtended:_MaybeAnnounceWinner()
 	if self.inspectInProgress or self.inspectQueue[1] then return end -- still scanning
 
 	local target = self._piTarget
@@ -520,7 +520,7 @@ function AutoPIRemix:_MaybeAnnounceWinner()
 	end
 end
 
-function AutoPIRemix:_StartScanner()
+function AutoPIExtended:_StartScanner()
 	if self._scanner then return end
 	self._scanner = C_Timer.NewTicker(self.SCAN_INTERVAL, function()
 		self:_ScanGroupForSpecs()
@@ -529,7 +529,7 @@ function AutoPIRemix:_StartScanner()
 	C_Timer.After(1.0, function() self:_ScanGroupForSpecs() end)
 end
 
-function AutoPIRemix:_StopScanner()
+function AutoPIExtended:_StopScanner()
 	if self._scanner then
 		self._scanner:Cancel()
 		self._scanner = nil
@@ -538,8 +538,8 @@ end
 
 -- ------------------------------------------------------------
 
-function AutoPIRemix:ADDON_LOADED(event, addOnName)
-	if addOnName ~= "AutoPIRemix" then return end
+function AutoPIExtended:ADDON_LOADED(event, addOnName)
+	if addOnName ~= "AutoPIExtended" then return end
 	self:UnregisterEvent(event)
 
 	-- Priests only: stay completely inert for every other class (no DB, no
@@ -547,8 +547,8 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 	local _, classid = UnitClassBase("player")
 	if classid ~= 5 then return end
 
-	AutoPIRemixDB = AutoPIRemixDB or {}
-	self.db = AutoPIRemixDB
+	AutoPIExtendedDB = AutoPIExtendedDB or {}
+	self.db = AutoPIExtendedDB
 	for k, v in pairs(self.defaults) do
 		if self.db[k] == nil then
 			self.db[k] = v
@@ -574,7 +574,7 @@ function AutoPIRemix:ADDON_LOADED(event, addOnName)
 	end)
 end
 
-function AutoPIRemix:GROUP_ROSTER_UPDATE()
+function AutoPIExtended:GROUP_ROSTER_UPDATE()
 	-- Rebuild roster + kick a scan soon. After it settles, recompute the winner
 	-- and re-announce if it changed (covers leavers that need no new inspect).
 	self:_RebuildRoster()
@@ -585,7 +585,7 @@ function AutoPIRemix:GROUP_ROSTER_UPDATE()
 	end)
 end
 
-function AutoPIRemix:PLAYER_ENTERING_WORLD()
+function AutoPIExtended:PLAYER_ENTERING_WORLD()
 	-- Instance/zone changed: the active ranking (raid vs M+) may differ, so
 	-- refresh the macro and rescan the group shortly after the world loads.
 	-- Clear the last-announced target so a fresh instance re-announces.
@@ -596,13 +596,13 @@ function AutoPIRemix:PLAYER_ENTERING_WORLD()
 	end)
 end
 
-function AutoPIRemix:PLAYER_REGEN_ENABLED()
+function AutoPIExtended:PLAYER_REGEN_ENABLED()
 	-- Leaving combat: refresh macro + continue inspections
 	self:rewriteMacro()
 	C_Timer.After(0.5, function() self:_ProcessInspectQueue() end)
 end
 
-function AutoPIRemix:rewriteMacro()
+function AutoPIExtended:rewriteMacro()
 	if InCombatLockdown() then return end
 
 	-- Prefer GetMacroIndexByName over hard-coded index ranges (future-proof)
@@ -717,13 +717,13 @@ function AutoPIRemix:rewriteMacro()
 		CreateMacro("PI_WA_AUTO", "INV_MISC_QUESTIONMARK", macro, true)
 	end
 
-	print("AutoPIRemix: updated PI macro — winner is " .. (targetname or "default/focus"))
+	print("AutoPIExtended: updated PI macro — winner is " .. (targetname or "default/focus"))
 end
 
 
 -- Build the debug report as an array of text lines (shared by the chat dump
 -- and the live debug window).
-function AutoPIRemix:_BuildDebugLines()
+function AutoPIExtended:_BuildDebugLines()
 	local lines = {}
 	local function add(s) lines[#lines + 1] = s end
 
@@ -861,9 +861,9 @@ function AutoPIRemix:_BuildDebugLines()
 end
 
 -- One-shot dump to the chat frame.
-function AutoPIRemix:PrintDebugScores()
+function AutoPIExtended:PrintDebugScores()
 	for _, line in ipairs(self:_BuildDebugLines()) do
-		print("AutoPIRemix debug: " .. line)
+		print("AutoPIExtended debug: " .. line)
 	end
 end
 
@@ -871,7 +871,7 @@ end
 -- Live debug window (refreshes in place, no chat scroll)
 -- ------------------------------------------------------------
 
-function AutoPIRemix:_RefreshDebugWindow()
+function AutoPIExtended:_RefreshDebugWindow()
 	local f = self.debugWindow
 	if not f or not f:IsShown() then return end
 	-- Guard so a transient error never blanks the window or kills the ticker.
@@ -883,17 +883,17 @@ function AutoPIRemix:_RefreshDebugWindow()
 	end
 end
 
-function AutoPIRemix:_StopDebugTicker()
+function AutoPIExtended:_StopDebugTicker()
 	if self._debugTicker then
 		self._debugTicker:Cancel()
 		self._debugTicker = nil
 	end
 end
 
-function AutoPIRemix:_EnsureDebugWindow()
+function AutoPIExtended:_EnsureDebugWindow()
 	if self.debugWindow then return self.debugWindow end
 
-	local f = CreateFrame("Frame", "AutoPIRemixDebugWindow", UIParent, "BackdropTemplate")
+	local f = CreateFrame("Frame", "AutoPIExtendedDebugWindow", UIParent, "BackdropTemplate")
 	f:SetSize(820, 380)
 	f:SetPoint("CENTER")
 	f:SetFrameStrata("DIALOG")
@@ -915,7 +915,7 @@ function AutoPIRemix:_EnsureDebugWindow()
 
 	local title = f:CreateFontString(nil, "OVERLAY", "GameFontNormal")
 	title:SetPoint("TOPLEFT", 14, -12)
-	title:SetText("AutoPI Remix — Debug (live)")
+	title:SetText("AutoPI Extended — Debug (live)")
 
 	local close = CreateFrame("Button", nil, f, "UIPanelCloseButton")
 	close:SetPoint("TOPRIGHT", 2, 2)
@@ -930,15 +930,15 @@ function AutoPIRemix:_EnsureDebugWindow()
 	f.body = body
 
 	-- ESC closes; stop the refresh ticker whenever hidden
-	tinsert(UISpecialFrames, "AutoPIRemixDebugWindow")
-	f:SetScript("OnHide", function() AutoPIRemix:_StopDebugTicker() end)
+	tinsert(UISpecialFrames, "AutoPIExtendedDebugWindow")
+	f:SetScript("OnHide", function() AutoPIExtended:_StopDebugTicker() end)
 
 	f:Hide()  -- start hidden so first ToggleDebugWindow shows rather than hides
 	self.debugWindow = f
 	return f
 end
 
-function AutoPIRemix:ToggleDebugWindow()
+function AutoPIExtended:ToggleDebugWindow()
 	local f = self:_EnsureDebugWindow()
 	if f:IsShown() then
 		f:Hide()
@@ -954,10 +954,10 @@ end
 -- On-screen PI target box (draggable HUD: icon + target + confidence)
 -- ------------------------------------------------------------
 
-function AutoPIRemix:_EnsureTargetFrame()
+function AutoPIExtended:_EnsureTargetFrame()
 	if self.targetFrame then return self.targetFrame end
 
-	local f = CreateFrame("Frame", "AutoPIRemixTargetFrame", UIParent, "BackdropTemplate")
+	local f = CreateFrame("Frame", "AutoPIExtendedTargetFrame", UIParent, "BackdropTemplate")
 	f:SetSize(230, 68)
 	f:SetFrameStrata("MEDIUM")
 	f:SetClampedToScreen(true)
@@ -985,7 +985,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	f:SetScript("OnDragStop", function(frame)
 		frame:StopMovingOrSizing()
 		local point, _, relPoint, x, y = frame:GetPoint()
-		AutoPIRemix.db.target_frame_pos = { point = point, relPoint = relPoint, x = x, y = y }
+		AutoPIExtended.db.target_frame_pos = { point = point, relPoint = relPoint, x = x, y = y }
 	end)
 
 	-- Icon is a secure button so clicking it targets the PI target (works in combat)
@@ -1003,7 +1003,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	iconBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
 	iconBtn:SetScript("OnEnter", function(btn)
 		GameTooltip:SetOwner(btn, "ANCHOR_RIGHT")
-		local t = AutoPIRemix._piTarget
+		local t = AutoPIExtended._piTarget
 		if t then
 			GameTooltip:SetText("Click to target " .. t)
 		else
@@ -1041,7 +1041,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	dbgLabel:SetAllPoints()
 	dbgLabel:SetText("D")
 	dbgBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
-	dbgBtn:SetScript("OnClick", function() AutoPIRemix:ToggleDebugWindow() end)
+	dbgBtn:SetScript("OnClick", function() AutoPIExtended:ToggleDebugWindow() end)
 	dbgBtn:SetScript("OnEnter", function(btn)
 		GameTooltip:SetOwner(btn, "ANCHOR_BOTTOM")
 		GameTooltip:SetText("Toggle debug window")
@@ -1061,7 +1061,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	annLabel:SetAllPoints()
 	annLabel:SetText("A")
 	annBtn:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
-	annBtn:SetScript("OnClick", function() AutoPIRemix:_ForceAnnounceWinner() end)
+	annBtn:SetScript("OnClick", function() AutoPIExtended:_ForceAnnounceWinner() end)
 	annBtn:SetScript("OnEnter", function(btn)
 		GameTooltip:SetOwner(btn, "ANCHOR_BOTTOM")
 		GameTooltip:SetText("Announce PI target to group")
@@ -1074,7 +1074,7 @@ function AutoPIRemix:_EnsureTargetFrame()
 	return f
 end
 
-function AutoPIRemix:_UpdateTargetFrame()
+function AutoPIExtended:_UpdateTargetFrame()
 	if not self.db then return end
 	if not self.db.show_target_frame then
 		if self.targetFrame then self.targetFrame:Hide() end
@@ -1128,35 +1128,34 @@ function AutoPIRemix:_UpdateTargetFrame()
 	end
 end
 
-function AutoPIRemix:ToggleTargetFrame()
+function AutoPIExtended:ToggleTargetFrame()
 	self.db.show_target_frame = not self.db.show_target_frame
 	self:_UpdateTargetFrame()
-	print("AutoPIRemix: PI target box " .. (self.db.show_target_frame and "shown" or "hidden"))
+	print("AutoPIExtended: PI target box " .. (self.db.show_target_frame and "shown" or "hidden"))
 end
 
 
-SLASH_AUTOPIREMIX1 = "/autopiremix"
-SLASH_AUTOPIREMIX2 = "/apir"
-SLASH_AUTOPIREMIX3 = "/autopi" -- legacy alias (pre-rename)
-SlashCmdList.AUTOPIREMIX = function(msg)
-	if not AutoPIRemix.db then return end -- inactive (non-priest)
+SLASH_AUTOPIEXTENDED1 = "/autopie"
+SLASH_AUTOPIEXTENDED2 = "/apie"
+SlashCmdList.AUTOPIEXTENDED = function(msg)
+	if not AutoPIExtended.db then return end -- inactive (non-priest)
 	msg = (msg or ""):lower():gsub("^%s+", ""):gsub("%s+$","")
 	if msg == "debug print" or msg == "debug chat" then
-		AutoPIRemix:PrintDebugScores()
+		AutoPIExtended:PrintDebugScores()
 		return
 	end
 	if msg == "debug" then
-		AutoPIRemix:ToggleDebugWindow()
+		AutoPIExtended:ToggleDebugWindow()
 		return
 	end
 	if msg == "hud" or msg == "box" then
-		AutoPIRemix:ToggleTargetFrame()
+		AutoPIExtended:ToggleTargetFrame()
 		return
 	end
 	-- default: open settings
-	if AutoPIRemix.settingsCategoryID then
-		Settings.OpenToCategory(AutoPIRemix.settingsCategoryID)
-	elseif AutoPIRemix.panel_main and AutoPIRemix.panel_main.name then
-		Settings.OpenToCategory(AutoPIRemix.panel_main.name)
+	if AutoPIExtended.settingsCategoryID then
+		Settings.OpenToCategory(AutoPIExtended.settingsCategoryID)
+	elseif AutoPIExtended.panel_main and AutoPIExtended.panel_main.name then
+		Settings.OpenToCategory(AutoPIExtended.panel_main.name)
 	end
 end

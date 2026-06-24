@@ -1,4 +1,4 @@
-# AutoPI Remix
+# AutoPI Extended
 
 A World of Warcraft **Retail** addon for **Priests** that determines the optimal
 [Power Infusion](https://www.wowhead.com/spell=10060/power-infusion) target and
@@ -41,7 +41,7 @@ matches your current content:
   dungeons, scenarios, and the open world** (everything that isn't a raid).
 
 The active list switches automatically on instance/zone changes, and the live
-debug window (`/apir debug`) shows which one is in use. If you switch to the
+debug window (`/apie debug`) shows which one is in use. If you switch to the
 manual spec-order editor, your custom order is used instead.
 
 > These rankings are static snapshots of Bloodmallet's sims (last refreshed
@@ -73,21 +73,20 @@ active spec list stays correct.
 ## Installation
 
 1. Copy the addon folder into your WoW AddOns directory:
-   `World of Warcraft/_retail_/Interface/AddOns/AutoPIRemix/`
-2. Ensure the folder name matches the `.toc` file name (`AutoPIRemix`).
+   `World of Warcraft/_retail_/Interface/AddOns/AutoPIExtended/`
+2. Ensure the folder name matches the `.toc` file name (`AutoPIExtended`).
 3. Restart the client or reload the UI (`/reload`).
 
 ## Usage
 
-- `/autopiremix` (or the short alias `/apir`, or legacy `/autopi`) — open the
-  settings panel.
-- `/apir debug` — open a live debug window that refreshes in place (no chat
+- `/autopie` (or the short alias `/apie`) — open the settings panel.
+- `/apie debug` — open a live debug window that refreshes in place (no chat
   scroll) showing the current selection state: which spec list is active, DPS
   counts, inspect coverage, baseline, K, clamp, the ranked candidate breakdown,
   the winner, and inspect-pipeline telemetry (queue length, current target,
   request/success/timeout/skip counters). Draggable; close with the X or Esc.
-- `/apir debug print` — dump that same report to the chat frame once.
-- `/apir hud` — toggle the on-screen PI target box (see below).
+- `/apie debug print` — dump that same report to the chat frame once.
+- `/apie hud` — toggle the on-screen PI target box (see below).
 
 ## On-screen target box
 
@@ -95,7 +94,7 @@ A small draggable box shows the **Power Infusion icon**, the **current PI target
 and the **selection confidence** (HIGH / MED / LOW, colored, with the score gap
 to the runner-up; "preferred player" when chosen from your preferred list,
 "auto-fallback" when the manual list matched no one). Drag it anywhere — its
-position is saved between sessions. Toggle it with `/apir hud`. It's shown by
+position is saved between sessions. Toggle it with `/apie hud`. It's shown by
 default.
 
 It also includes:

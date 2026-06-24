@@ -1,4 +1,4 @@
-AutoPIRemix.defaults = {
+AutoPIExtended.defaults = {
 	trinket1 = false,
 	trinket2 = false,
 	spell391109 = false,
@@ -16,10 +16,10 @@ AutoPIRemix.defaults = {
 local function RegisterCanvas(frame)
 	local cat = Settings.RegisterCanvasLayoutCategory(frame, frame.name, frame.name);
 		Settings.RegisterAddOnCategory(cat)
-	AutoPIRemix.settingsCategoryID = (cat.GetID and cat:GetID()) or cat.ID
+	AutoPIExtended.settingsCategoryID = (cat.GetID and cat:GetID()) or cat.ID
 end
 
-function AutoPIRemix:CreateCheckbox(option, label, parent, updateFunc)
+function AutoPIExtended:CreateCheckbox(option, label, parent, updateFunc)
 	local cb = CreateFrame("CheckButton", nil, parent, "InterfaceOptionsCheckButtonTemplate")
 	cb.Text:SetText(label)
 	local function UpdateOption(value)
@@ -34,14 +34,14 @@ function AutoPIRemix:CreateCheckbox(option, label, parent, updateFunc)
 	cb:HookScript("OnClick", function(_, btn, down)
 		UpdateOption(cb:GetChecked())
 	end)
-	EventRegistry:RegisterCallback("AutoPIRemix.OnReset", function()
+	EventRegistry:RegisterCallback("AutoPIExtended.OnReset", function()
 		UpdateOption(self.defaults[option])
 	end, cb)
 	return cb
 end
 
 
-function AutoPIRemix:CreateNumberBox(option, label, parent, width, onChange, allowFloat)
+function AutoPIExtended:CreateNumberBox(option, label, parent, width, onChange, allowFloat)
 	local this = self
 	local frame = CreateFrame("Frame", nil, parent)
 	frame:SetSize(width or 200, 24)
@@ -71,7 +71,7 @@ function AutoPIRemix:CreateNumberBox(option, label, parent, width, onChange, all
 	eb:SetScript("OnEscapePressed", function(self) self:ClearFocus(); eb:SetNumber(tonumber(this.db[option]) or 0) end)
 	eb:SetScript("OnEditFocusLost", function() commit() end)
 
-	EventRegistry:RegisterCallback("AutoPIRemix.OnReset", function()
+	EventRegistry:RegisterCallback("AutoPIExtended.OnReset", function()
 		this.db[option] = this.defaults[option]
 		eb:SetNumber(tonumber(this.db[option]) or 0)
 		if onChange then onChange(this.db[option]) end
@@ -81,7 +81,7 @@ function AutoPIRemix:CreateNumberBox(option, label, parent, width, onChange, all
 	return frame
 end
 
-function AutoPIRemix:CreateMultiLineTextBoxWithBackground(option, parent)
+function AutoPIExtended:CreateMultiLineTextBoxWithBackground(option, parent)
 	local this = self
     local frame = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     frame:SetSize(420, 130)
@@ -123,10 +123,10 @@ function AutoPIRemix:CreateMultiLineTextBoxWithBackground(option, parent)
     return frame
 end
 
-function AutoPIRemix:InitializeOptions()
+function AutoPIExtended:InitializeOptions()
 	-- main panel
 	self.panel_main = CreateFrame("Frame")
-	self.panel_main.name = "AutoPI Remix"
+	self.panel_main.name = "AutoPI Extended"
 
 	-- Create main scroll frame for the entire panel
 	local mainScrollFrame = CreateFrame("ScrollFrame", nil, self.panel_main, "UIPanelScrollFrameTemplate")
@@ -142,23 +142,23 @@ function AutoPIRemix:InitializeOptions()
 	trinketsTitle:SetPoint("TOPLEFT", 0, 0)
 	trinketsTitle:SetText("Trinkets")
 
-	local trinket1CB = self:CreateCheckbox("trinket1", "Use Trinket 1 in macro", mainContent, function() AutoPIRemix:rewriteMacro() end)
+	local trinket1CB = self:CreateCheckbox("trinket1", "Use Trinket 1 in macro", mainContent, function() AutoPIExtended:rewriteMacro() end)
 	trinket1CB:SetPoint("TOPLEFT", trinketsTitle, "BOTTOMLEFT", 10, -10)
 
-	local trinket2CB = self:CreateCheckbox("trinket2", "Use Trinket 2 in macro", mainContent, function() AutoPIRemix:rewriteMacro() end)
+	local trinket2CB = self:CreateCheckbox("trinket2", "Use Trinket 2 in macro", mainContent, function() AutoPIExtended:rewriteMacro() end)
 	trinket2CB:SetPoint("LEFT", trinket1CB, "RIGHT", 200, 0)
 
 	local spell391109Info = C_Spell.GetSpellInfo(391109)
 	local spell228260Info = C_Spell.GetSpellInfo(228260)
 
-	local spell391109CB = self:CreateCheckbox("spell391109", "Cast " .. ((spell391109Info and spell391109Info.name) or "spell") .. " if known", mainContent, function() AutoPIRemix:rewriteMacro() end)
+	local spell391109CB = self:CreateCheckbox("spell391109", "Cast " .. ((spell391109Info and spell391109Info.name) or "spell") .. " if known", mainContent, function() AutoPIExtended:rewriteMacro() end)
 	spell391109CB:SetPoint("TOPLEFT", trinket1CB, "BOTTOMLEFT", 0, -10)
 
-	local spell228260CB = self:CreateCheckbox("spell228260", "Cast " .. ((spell228260Info and spell228260Info.name) or "spell") .. " if known", mainContent, function() AutoPIRemix:rewriteMacro() end)
+	local spell228260CB = self:CreateCheckbox("spell228260", "Cast " .. ((spell228260Info and spell228260Info.name) or "spell") .. " if known", mainContent, function() AutoPIExtended:rewriteMacro() end)
 	spell228260CB:SetPoint("LEFT", spell391109CB, "RIGHT", 200, 0)
 
 	-- ===== Display =====
-	local hudCB = self:CreateCheckbox("show_target_frame", "Show on-screen PI target box", mainContent, function() AutoPIRemix:_UpdateTargetFrame() end)
+	local hudCB = self:CreateCheckbox("show_target_frame", "Show on-screen PI target box", mainContent, function() AutoPIExtended:_UpdateTargetFrame() end)
 	hudCB:SetPoint("TOPLEFT", spell391109CB, "BOTTOMLEFT", 0, -10)
 
 	-- ===== Preferred Players =====
@@ -191,23 +191,23 @@ function AutoPIRemix:InitializeOptions()
 	-- Manual boxes are only relevant when weighted scoring is on AND the matching
 	-- auto-toggle is off. Clamp has no auto-toggle, so it follows weighted only.
 	local function UpdateScoringEnabled()
-		local weighted = AutoPIRemix.db.use_weighted_scoring
+		local weighted = AutoPIExtended.db.use_weighted_scoring
 		setCBEnabled(autoBaseCB, weighted)
 		setCBEnabled(autoKCB, weighted)
-		setBoxEnabled(baselineBox, weighted and not AutoPIRemix.db.ilvl_auto_baseline)
-		setBoxEnabled(kBox, weighted and not AutoPIRemix.db.ilvl_auto_k)
+		setBoxEnabled(baselineBox, weighted and not AutoPIExtended.db.ilvl_auto_baseline)
+		setBoxEnabled(kBox, weighted and not AutoPIExtended.db.ilvl_auto_k)
 		setBoxEnabled(clampBox, weighted)
 	end
 
 	weightedCB = self:CreateCheckbox("use_weighted_scoring", "Use weighted scoring (spec order + item level)", mainContent, function()
 		UpdateScoringEnabled()
-		AutoPIRemix:rewriteMacro()
+		AutoPIExtended:rewriteMacro()
 	end)
 	weightedCB:SetPoint("TOPLEFT", scoringTitle, "BOTTOMLEFT", 10, -10)
 
 	autoBaseCB = self:CreateCheckbox("ilvl_auto_baseline", "Auto-detect baseline from group average ilvl", mainContent, function()
 		UpdateScoringEnabled()
-		AutoPIRemix:rewriteMacro()
+		AutoPIExtended:rewriteMacro()
 	end)
 	autoBaseCB:SetPoint("TOPLEFT", weightedCB, "BOTTOMLEFT", 0, -6)
 
@@ -215,17 +215,17 @@ function AutoPIRemix:InitializeOptions()
 		("Auto-scale K from baseline (baseline*%g, clamped %d-%d)"):format(self.K_MULTIPLIER, self.K_MIN, self.K_MAX),
 		mainContent, function()
 			UpdateScoringEnabled()
-			AutoPIRemix:rewriteMacro()
+			AutoPIExtended:rewriteMacro()
 		end)
 	autoKCB:SetPoint("TOPLEFT", autoBaseCB, "BOTTOMLEFT", 0, -6)
 
-	baselineBox = self:CreateNumberBox("ilvl_baseline", ("Baseline ilvl (default %d)"):format(self.defaults.ilvl_baseline), mainContent, 240, function() AutoPIRemix:rewriteMacro() end)
+	baselineBox = self:CreateNumberBox("ilvl_baseline", ("Baseline ilvl (default %d)"):format(self.defaults.ilvl_baseline), mainContent, 240, function() AutoPIExtended:rewriteMacro() end)
 	baselineBox:SetPoint("TOPLEFT", autoKCB, "BOTTOMLEFT", 0, -12)
 
-	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 240, function() AutoPIRemix:rewriteMacro() end)
+	kBox = self:CreateNumberBox("ilvl_k", "K (ilvl per +1.0 score)", mainContent, 240, function() AutoPIExtended:rewriteMacro() end)
 	kBox:SetPoint("LEFT", baselineBox, "RIGHT", 40, 0)
 
-	clampBox = self:CreateNumberBox("ilvl_clamp", ("Clamp (max +/- score, default %.2f)"):format(self.defaults.ilvl_clamp), mainContent, 300, function() AutoPIRemix:rewriteMacro() end, true)
+	clampBox = self:CreateNumberBox("ilvl_clamp", ("Clamp (max +/- score, default %.2f)"):format(self.defaults.ilvl_clamp), mainContent, 300, function() AutoPIExtended:rewriteMacro() end, true)
 	clampBox:SetPoint("TOPLEFT", baselineBox, "BOTTOMLEFT", 0, -12)
 
 	UpdateScoringEnabled()
@@ -247,7 +247,7 @@ function AutoPIRemix:InitializeOptions()
 
 	local function RefreshList()
 		for _, child in ipairs({ content:GetChildren() }) do child:Hide() end
-		local order = AutoPIRemix.db.specIDs_order or {}
+		local order = AutoPIExtended.db.specIDs_order or {}
 		for i, specID in ipairs(order) do
 			local _, name, _, icon, _, _, className = GetSpecializationInfoByID(specID)
 
@@ -263,7 +263,7 @@ function AutoPIRemix:InitializeOptions()
 			upBtn:SetScript("OnClick", function()
 				if i > 1 then
 					order[i], order[i-1] = order[i-1], order[i]
-					AutoPIRemix:rewriteMacro()
+					AutoPIExtended:rewriteMacro()
 					RefreshList()
 				end
 			end)
@@ -276,7 +276,7 @@ function AutoPIRemix:InitializeOptions()
 			downBtn:SetScript("OnClick", function()
 				if i < #order then
 					order[i], order[i+1] = order[i+1], order[i]
-					AutoPIRemix:rewriteMacro()
+					AutoPIExtended:rewriteMacro()
 					RefreshList()
 				end
 			end)
@@ -323,24 +323,24 @@ function AutoPIRemix:InitializeOptions()
 	end
 
 	manualModeBtn:SetScript("OnClick", function()
-		AutoPIRemix.db.use_bloodmallet_spec_ids = false
-		if not AutoPIRemix.db.specIDs_order or #AutoPIRemix.db.specIDs_order == 0 then
-			AutoPIRemix.db.specIDs_order = {}
-			for _, specID in ipairs(AutoPIRemix.bloodmallet_spec_ids) do
-				table.insert(AutoPIRemix.db.specIDs_order, specID)
+		AutoPIExtended.db.use_bloodmallet_spec_ids = false
+		if not AutoPIExtended.db.specIDs_order or #AutoPIExtended.db.specIDs_order == 0 then
+			AutoPIExtended.db.specIDs_order = {}
+			for _, specID in ipairs(AutoPIExtended.bloodmallet_spec_ids) do
+				table.insert(AutoPIExtended.db.specIDs_order, specID)
 			end
 		end
 		ShowManualMode()
-		AutoPIRemix:rewriteMacro()
+		AutoPIExtended:rewriteMacro()
 	end)
 
 	autoModeBtn:SetScript("OnClick", function()
-		AutoPIRemix.db.use_bloodmallet_spec_ids = true
+		AutoPIExtended.db.use_bloodmallet_spec_ids = true
 		ShowAutomaticMode()
-		AutoPIRemix:rewriteMacro()
+		AutoPIExtended:rewriteMacro()
 	end)
 
-	if AutoPIRemix.db.use_bloodmallet_spec_ids then
+	if AutoPIExtended.db.use_bloodmallet_spec_ids then
 		ShowAutomaticMode()
 	else
 		ShowManualMode()
