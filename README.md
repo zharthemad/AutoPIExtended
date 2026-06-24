@@ -150,6 +150,28 @@ squishes.
 Updated for WoW **12.0.7** (Midnight). See open items in the issue tracker /
 handoff notes.
 
+## Releasing
+
+Releases are packaged and published automatically by a GitHub Action
+([`.github/workflows/release.yml`](.github/workflows/release.yml)) using the
+[BigWigsMods packager](https://github.com/BigWigsMods/packager).
+
+To ship a release:
+
+1. Bump `## Version:` in the `.toc` (and `## Interface:` if the WoW patch
+   changed) and merge it.
+2. On GitHub, **Releases → Draft a new release**, create a tag matching the
+   version (e.g. `12.0.7.30`), and **Publish**.
+3. The workflow packages the addon, uploads it to **CurseForge**, and attaches
+   the `.zip` to the GitHub Release.
+
+One-time setup required for the CurseForge upload:
+
+- Add a `CF_API_KEY` repo secret (CurseForge account → *My API Tokens*).
+- Set `## X-Curse-Project-ID:` in the `.toc` to your CurseForge project's
+  numeric ID. Until both are in place the CurseForge step is skipped/fails, but
+  the GitHub Release asset is still produced.
+
 ## Credits
 
 Author: **CzarTheMad**

@@ -1,0 +1,36 @@
+name: Package and release
+
+# Publishes a packaged build when you publish a GitHub Release.
+# Flow: bump the TOC Version -> create a GitHub Release (Releases -> Draft a new
+# release) with a tag -> this workflow packages the addon, uploads it to
+# CurseForge, and attaches the .zip to that GitHub Release.
+#
+# Required repo secret:
+#   CF_API_KEY  - CurseForge API token (CurseForge account -> My API Tokens).
+#                 If this secret is absent, the CurseForge upload is skipped and
+#                 only the GitHub Release asset is produced, so it fails safe.
+# Required TOC field:
+#   ## X-Curse-Project-ID: <numeric id>  (see AutoPIExtended.toc)
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Package and release
+        uses: BigWigsMods/packager@v2
+        env:
+          # Lets the packager attach the .zip to this GitHub Release.
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}
+          # CurseForge upload. Skipped automatically if the secret is unset.
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
