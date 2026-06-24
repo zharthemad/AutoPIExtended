@@ -2,7 +2,7 @@
 
 A World of Warcraft **Retail** addon for **Priests** that determines the optimal
 [Power Infusion](https://www.wowhead.com/spell=10060/power-infusion) target and
-maintains a character-specific macro (`PI_WA_AUTO`) that always points to the
+maintains a character-specific macro (`APIE`) that always points to the
 currently selected target.
 
 > **AutoPI does not cast Power Infusion for you.** It only keeps a macro updated
@@ -64,7 +64,7 @@ eligible player:
 
 ### Macro management
 
-The `PI_WA_AUTO` macro is rewritten to point at the current best target. Because
+The `APIE` macro is rewritten to point at the current best target. Because
 Blizzard blocks macro edits in combat, updates are deferred during combat and
 re-applied automatically when combat ends (`PLAYER_REGEN_ENABLED`). It also
 re-evaluates when you change zones or instances (`PLAYER_ENTERING_WORLD`), so the
