@@ -128,6 +128,18 @@ end
 AutoPIExtended.SCAN_INTERVAL = 4
 -- How long we trust a cached spec before refreshing (seconds)
 AutoPIExtended.CACHE_TTL = 60
+-- How many times we retry inspecting a single unit before giving up on it, and
+-- how long we then leave it alone before the rescan is allowed to re-queue it.
+-- In large raids (e.g. LFR) some units are CanInspect=true but never return
+-- INSPECT_READY (range flicker / server doesn't answer); without a cap they get
+-- requeued forever and the queue never drains.
+AutoPIExtended.INSPECT_MAX_TRIES = 3
+AutoPIExtended.INSPECT_GIVEUP_COOLDOWN = 30
+-- Seconds of "no successful inspect arriving" before we announce. This debounce
+-- is what makes the announcement fire in big raids: rather than waiting for the
+-- queue to be perfectly empty (which a 25-person LFR may never reach due to the
+-- stragglers above), we announce once new spec data stops coming in.
+AutoPIExtended.ANNOUNCE_DEBOUNCE = 3
 
 -- Auto-K scaling: K = baseline * K_MULTIPLIER, clamped to [K_MIN, K_MAX].
 -- Shared so the options label can be generated from these (never drifts).
@@ -309,9 +321,10 @@ function AutoPIExtended:_ResetCaches()
 	self.group_cache = {}   -- [guid] = { name=..., spec=..., ts=... }
 	self.name_cache = {}    -- [lower(name)] = guid
 	self.spec_cache = {}    -- [specID] = { [guid]=name, ... }
-	self.inspectQueue = {}  -- array of {guid=..., unit=...}
-	self.inspectPending = nil -- {guid=..., unit=...}
+	self.inspectQueue = {}  -- array of {guid=..., unit=..., tries=...}
+	self.inspectPending = nil -- {guid=..., unit=..., tries=...}
 	self.inspectInProgress = false
+	self.inspectGiveUp = {} -- [guid] = time() until which we stop retrying this unit
 
 	-- Inspect pipeline telemetry
 	self.inspectStats = { requests = 0, success = 0, timeouts = 0, skips = 0 }
@@ -319,6 +332,8 @@ function AutoPIExtended:_ResetCaches()
 	self.inspectCurrent = nil -- {guid=..., unit=..., name=...}
 	self._inspectTimeoutToken = 0
 	self._lastAnnouncedTarget = nil
+	if self._announceTimer then self._announceTimer:Cancel() end
+	self._announceTimer = nil
 end
 
 function AutoPIExtended:_RemoveGuid(guid)
@@ -331,6 +346,7 @@ function AutoPIExtended:_RemoveGuid(guid)
 			self.spec_cache[entry.spec] = nil
 		end
 	end
+	if self.inspectGiveUp then self.inspectGiveUp[guid] = nil end
 	self.group_cache[guid] = nil
 end
 
@@ -375,7 +391,7 @@ function AutoPIExtended:_QueueInspect(guid, unit)
 		if item.guid == guid then return end
 	end
 	if self.inspectPending and self.inspectPending.guid == guid then return end
-	table.insert(self.inspectQueue, { guid = guid, unit = unit })
+	table.insert(self.inspectQueue, { guid = guid, unit = unit, tries = 0 })
 end
 
 function AutoPIExtended:_ScanGroupForSpecs()
@@ -390,10 +406,18 @@ function AutoPIExtended:_ScanGroupForSpecs()
 			local guid = UnitGUID(unit)
 			local name = UnitName(unit)
 			if guid and name and CanInspect(unit) then
-				local cached = self.group_cache[guid]
-				local stale = (not cached) or (not cached.spec) or (not cached.ts) or (now - cached.ts > self.CACHE_TTL)
-				if stale then
-					self:_QueueInspect(guid, unit)
+				-- Don't re-queue a unit we recently gave up on (kept failing) until
+				-- its cooldown lapses, so persistent stragglers can't keep the queue
+				-- perpetually non-empty.
+				local giveUpUntil = self.inspectGiveUp and self.inspectGiveUp[guid]
+				if giveUpUntil and now < giveUpUntil then
+					-- still cooling down; skip
+				else
+					local cached = self.group_cache[guid]
+					local stale = (not cached) or (not cached.spec) or (not cached.ts) or (now - cached.ts > self.CACHE_TTL)
+					if stale then
+						self:_QueueInspect(guid, unit)
+					end
 				end
 			end
 		end
@@ -439,9 +463,16 @@ function AutoPIExtended:_ProcessInspectQueue()
 		self.inspectPending = nil
 		self.inspectInProgress = false
 		self.inspectCurrent = nil
-		-- Requeue at end (it may become inspectable shortly)
+		-- Requeue at end (it may become inspectable shortly), but only up to
+		-- INSPECT_MAX_TRIES; past that, give up on it for a cooldown so the queue
+		-- can actually drain instead of cycling this unit forever.
 		if pending and pending.guid and pending.unit and UnitExists(pending.unit) then
-			table.insert(self.inspectQueue, pending)
+			pending.tries = (pending.tries or 0) + 1
+			if pending.tries < self.INSPECT_MAX_TRIES then
+				table.insert(self.inspectQueue, pending)
+			elseif self.inspectGiveUp then
+				self.inspectGiveUp[pending.guid] = time() + self.INSPECT_GIVEUP_COOLDOWN
+			end
 		end
 		C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
 	end)
@@ -467,6 +498,9 @@ function AutoPIExtended:INSPECT_READY(event, guid)
 	self.inspectPending = nil
 	self.inspectInProgress = false
 
+	-- This unit answered, so clear any prior give-up cooldown on it.
+	if self.inspectGiveUp then self.inspectGiveUp[guid] = nil end
+
 	if name and specID and specID > 0 then
 		self:_UpsertGuidSpec(guid, name, specID)
 		if ilvl and ilvl > 0 and self.group_cache[guid] then self.group_cache[guid].ilvl = ilvl end
@@ -476,8 +510,10 @@ function AutoPIExtended:INSPECT_READY(event, guid)
 	-- Process next, slightly delayed to respect throttle
 	C_Timer.After(0.25, function() self:_ProcessInspectQueue() end)
 
-	-- Once the queue drains, announce the winner if it changed
-	self:_MaybeAnnounceWinner()
+	-- Fresh spec data just arrived: (re)arm the debounced announce. It fires once
+	-- new data stops coming in (see _ScheduleAnnounce), rather than requiring the
+	-- queue to be perfectly empty.
+	self:_ScheduleAnnounce()
 end
 
 function AutoPIExtended:_AnnounceWinner()
@@ -515,12 +551,25 @@ function AutoPIExtended:_ForceAnnounceWinner()
 	self:_AnnounceWinner()
 end
 
--- Announce the winner only when scanning has settled and the target actually
--- changed since the last announcement (so joins/leaves re-announce, but a
--- steady target doesn't spam group chat).
-function AutoPIExtended:_MaybeAnnounceWinner()
-	if self.inspectInProgress or self.inspectQueue[1] then return end -- still scanning
+-- Debounced announce: (re)start a short timer that fires once inspect data has
+-- stopped arriving for ANNOUNCE_DEBOUNCE seconds. Each successful inspect pushes
+-- the timer out, so we announce when the scan effectively settles — without
+-- depending on the inspect queue ever being fully empty (which a big raid may
+-- never reach). Timeouts don't call this, so unreachable stragglers can't keep
+-- delaying the announce.
+function AutoPIExtended:_ScheduleAnnounce()
+	if self._announceTimer then self._announceTimer:Cancel() end
+	self._announceTimer = C_Timer.NewTimer(self.ANNOUNCE_DEBOUNCE, function()
+		self._announceTimer = nil
+		self:_MaybeAnnounceWinner()
+	end)
+end
 
+-- Announce the current winner if it actually changed since the last announcement
+-- (so joins/leaves re-announce, but a steady target doesn't spam group chat).
+-- Timing is handled by the caller (the debounce in _ScheduleAnnounce); this just
+-- decides whether there's a new target worth announcing.
+function AutoPIExtended:_MaybeAnnounceWinner()
 	local target = self._piTarget
 	local current = (target and target ~= "") and target or nil
 	if current == self._lastAnnouncedTarget then return end
@@ -592,7 +641,9 @@ function AutoPIExtended:GROUP_ROSTER_UPDATE()
 	C_Timer.After(0.5, function()
 		self:_ScanGroupForSpecs()
 		self:rewriteMacro()
-		self:_MaybeAnnounceWinner()
+		-- Debounced so a leaver that changes the winner (no new inspect needed)
+		-- still re-announces, without firing mid-scan on a preliminary winner.
+		self:_ScheduleAnnounce()
 	end)
 end
 
@@ -827,8 +878,16 @@ function AutoPIExtended:_BuildDebugLines()
 	local curGuid = cur and cur.guid or "nil"
 	local age = self.inspectLastRequestAt and (GetTime() - self.inspectLastRequestAt) or nil
 	local st = self.inspectStats or {}
+	-- Count units currently in their give-up cooldown (kept failing to inspect).
+	local gaveUp = 0
+	if self.inspectGiveUp then
+		local now = time()
+		for _, until_ in pairs(self.inspectGiveUp) do
+			if until_ and now < until_ then gaveUp = gaveUp + 1 end
+		end
+	end
 	add("Inspect pipeline:")
-	add(("  queue=%d"):format(qlen))
+	add(("  queue=%d  gaveUp=%d"):format(qlen, gaveUp))
 	add(("  current=%s (GUID=%s)"):format(curName, curGuid))
 	if age then
 		add(("  lastRequest=%.1fs ago"):format(age))

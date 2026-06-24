@@ -109,9 +109,12 @@ It also includes:
 
 ## Chat announcements
 
-Once scanning finishes (all currently available characters inspected), the addon
-announces the current PI target to your group — **instance chat** in LFG/LFR,
-otherwise **raid** or **party** chat. The message is intentionally neutral
+Once spec scanning settles (no new inspect data arriving for a few seconds), the
+addon announces the current PI target to your group — **instance chat** in
+LFG/LFR, otherwise **raid** or **party** chat. (Settling on a short debounce
+rather than a fully-drained inspect queue is deliberate: in a large raid like LFR
+a few players are never inspectable, so the queue may never reach empty.) The
+message is intentionally neutral
 (`AutoPI Extended: PI → Name`) — it does **not** broadcast the HIGH/MED/LOW
 confidence rating, since next to a player's name that reads like a judgment of the
 person rather than the score margin it actually reflects. Only when the pick is a
