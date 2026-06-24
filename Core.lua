@@ -676,13 +676,19 @@ function AutoPIExtended:rewriteMacro()
 	self._piDelta = nil
 	self._piRunnerUp = nil
 
-	-- First check preferred players (manual named-character list), if in DPS spec
-	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
-		local guid = self.name_cache[name:lower()]
-		if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
-			targetname = self.group_cache[guid].name
-			self._piConfidence = "preferred"
-			break
+	-- First check preferred players (manual named-character list), if in DPS spec.
+	-- Normalize each line before the lookup: the inspect cache (name_cache) is
+	-- keyed by the bare UnitName, lowercased, so trim surrounding whitespace and
+	-- drop any "-Realm" suffix the user may have pasted, and skip blank lines.
+	for line in (self.db.playerslist or ""):gmatch("[^\n]+") do
+		local name = line:gsub("^%s+", ""):gsub("%s+$", ""):match("^[^-]+")
+		if name and name ~= "" then
+			local guid = self.name_cache[name:lower()]
+			if guid and self.group_cache[guid] and self.group_cache[guid].spec and self:isDPS(self.group_cache[guid].spec) then
+				targetname = self.group_cache[guid].name
+				self._piConfidence = "preferred"
+				break
+			end
 		end
 	end
 
