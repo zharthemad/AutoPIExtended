@@ -45,7 +45,7 @@ debug window (`/apie debug`) shows which one is in use. If you switch to the
 manual spec-order editor, your custom order is used instead.
 
 > These rankings are static snapshots of Bloodmallet's sims (last refreshed
-> 2026-06-17, SimC `9f3b11b`). Bloodmallet re-sims each patch, so the lists drift
+> 2026-06-24, SimC `c12e9e5`). Bloodmallet re-sims each patch, so the lists drift
 > over time and want a periodic manual refresh (WoW addons can't fetch the data
 > at runtime).
 
