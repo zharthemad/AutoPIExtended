@@ -111,9 +111,15 @@ It also includes:
 
 Once scanning finishes (all currently available characters inspected), the addon
 announces the current PI target to your group — **instance chat** in LFG/LFR,
-otherwise **raid** or **party** chat. It re-announces when the target changes
-(e.g. roster changes) so other priests know who you're infusing, without spamming
-when nothing has changed. Use the HUD **`A`** button to re-send on demand.
+otherwise **raid** or **party** chat. The message is intentionally neutral
+(`AutoPI Extended: PI → Name`) — it does **not** broadcast the HIGH/MED/LOW
+confidence rating, since next to a player's name that reads like a judgment of the
+person rather than the score margin it actually reflects. Only when the pick is a
+genuine toss-up does it append the runner-up as useful backup info
+(`PI → Name (Other close behind)`). Full confidence detail stays on the HUD and
+debug window, for your eyes only. It re-announces when the target changes (e.g.
+roster changes) so other priests know who you're infusing, without spamming when
+nothing has changed. Use the HUD **`A`** button to re-send on demand.
 
 ## Configuration
 

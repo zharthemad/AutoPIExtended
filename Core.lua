@@ -494,10 +494,17 @@ function AutoPIExtended:_AnnounceWinner()
 		channel = "PARTY"
 	end
 
-	local conf = self._piConfidence or ""
-	local word = ({ HIGH = "high", MED = "medium", LOW = "low" })[conf] or conf
-	local suffix = (word ~= "") and (" (confidence: " .. word .. ")") or ""
-	SendChatMessage("AutoPI Extended: PI Target: " .. target .. suffix, channel)
+	-- Keep the public announcement neutral: just the target name. We deliberately
+	-- do NOT broadcast the HIGH/MED/LOW confidence word — next to a player's name
+	-- in group chat it reads like a judgment of that person, when it actually only
+	-- reflects how close the score race was. Only when it's a genuine toss-up do we
+	-- add the runner-up, framed as useful info ("who's the backup") rather than
+	-- doubt. (Full confidence detail still lives on the HUD/debug for the priest.)
+	local suffix = ""
+	if self._piConfidence == "LOW" and self._piRunnerUp and self._piRunnerUp ~= "" then
+		suffix = (" (%s close behind)"):format(self._piRunnerUp)
+	end
+	SendChatMessage("AutoPI Extended: PI → " .. target .. suffix, channel)
 end
 
 -- Force an announcement of the current target (manual HUD button). Syncs the
@@ -616,6 +623,7 @@ function AutoPIExtended:rewriteMacro()
 	local targetname = nil
 	self._piConfidence = nil
 	self._piDelta = nil
+	self._piRunnerUp = nil
 
 	-- First check preferred players (manual named-character list), if in DPS spec
 	for name in (self.db.playerslist or ""):gmatch("[^\n]+") do
@@ -651,6 +659,8 @@ function AutoPIExtended:rewriteMacro()
 				local delta = scores[2] and ((scores[1].total or 0) - (scores[2].total or 0)) or (scores[1].total or 0)
 				self._piDelta = delta
 				self._piConfidence = (delta >= 0.08 and "HIGH") or (delta >= 0.04 and "MED") or "LOW"
+				-- Runner-up name, used by the chat announcement on close calls.
+				self._piRunnerUp = scores[2] and scores[2].name or nil
 				return scores[1].name
 			end
 
