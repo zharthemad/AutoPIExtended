@@ -275,6 +275,7 @@ function AutoPIExtended:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 
 	local out = {}
 	for _, specID in ipairs(list or {}) do
+		if specID == 258 then goto continue end  -- skip Shadow Priests (they PI themselves)
 		local bucket = self.spec_cache[specID]
 		if bucket and next(bucket) then
 			local thisRank = rank[specID] or N
@@ -305,6 +306,7 @@ function AutoPIExtended:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 				end
 			end
 		end
+		::continue::
 	end
 
 	table.sort(out, function(a,b)
@@ -731,7 +733,7 @@ function AutoPIExtended:rewriteMacro()
 			-- Fallback to pure spec order if weighted scoring is disabled AND we didn't find anything via iteration
 			if not self.db.use_weighted_scoring then
 				for _, specID in ipairs(list) do
-					if self.spec_cache[specID] and next(self.spec_cache[specID]) then
+					if specID ~= 258 and self.spec_cache[specID] and next(self.spec_cache[specID]) then
 						local _, name = next(self.spec_cache[specID])
 						return name
 					end
