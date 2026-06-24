@@ -154,6 +154,13 @@ handoff notes.
 
 Author: **CzarTheMad**
 
+Inspired by [AutoPI - Power Infusion Made Easy](https://www.curseforge.com/wow/addons/autopi-power-infusion-made-easy) by its original author. AutoPI Extended started as a personal fork and has since grown into a significantly reworked addon, but the original concept and name come from that project.
+
 ## License
 
-All Rights Reserved. See [LICENSE](LICENSE).
+Licensed under the **GNU General Public License v3.0**. See [LICENSE](LICENSE).
+
+This addon incorporates code from
+[AutoPI - Power Infusion Made Easy](https://www.curseforge.com/wow/addons/autopi-power-infusion-made-easy),
+which is distributed under the GPLv3; as a derivative work, AutoPI Extended is
+released under the same license.
