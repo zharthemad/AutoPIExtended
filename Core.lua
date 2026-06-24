@@ -13,33 +13,33 @@ AutoPIExtended:RegisterEvent("ADDON_LOADED")
 -- healers are never selected anyway (isDPS filters to role == DAMAGER).
 -- The active list is chosen by content type (see _ActiveBloodmalletList).
 --
--- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-06-17 (SimC 9f3b11b).
+-- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-06-24 (SimC c12e9e5).
 AutoPIExtended.bloodmallet_spec_ids = {
 	63,   -- Fire Mage
 	254,  -- Marksmanship Hunter
-	269,  -- Windwalker Monk
 	253,  -- Beast Mastery Hunter
 	262,  -- Elemental Shaman
+	269,  -- Windwalker Monk
 	102,  -- Balance Druid
 	266,  -- Demonology Warlock
-	255,  -- Survival Hunter
 	263,  -- Enhancement Shaman
 	103,  -- Feral Druid
+	255,  -- Survival Hunter
 	70,   -- Retribution Paladin
 	265,  -- Affliction Warlock
-	104,  -- Guardian Druid
 	62,   -- Arcane Mage
-	258,  -- Shadow Priest
+	104,  -- Guardian Druid
 	71,   -- Arms Warrior
+	258,  -- Shadow Priest
 	259,  -- Assassination Rogue
+	1480, -- Devourer Demon Hunter
 	252,  -- Unholy Death Knight
 	251,  -- Frost Death Knight
-	1480, -- Devourer Demon Hunter
-	64,   -- Frost Mage
 	577,  -- Havoc Demon Hunter
+	64,   -- Frost Mage
+	1467, -- Devastation Evoker
 	72,   -- Fury Warrior
 	66,   -- Protection Paladin
-	1467, -- Devastation Evoker
 	267,  -- Destruction Warlock
 	260,  -- Outlaw Rogue
 	73,   -- Protection Warrior
@@ -59,37 +59,37 @@ AutoPIExtended.bloodmallet_spec_ids = {
 }
 
 -- MULTITARGET (M+, dungeons, everything non-raid): "Castingpatchwerk5"
--- (5-target), sim'd 2026-06-17 (SimC 9f3b11b). Same parked tail.
+-- (5-target), sim'd 2026-06-24 (SimC c12e9e5). Same parked tail.
 AutoPIExtended.bloodmallet_spec_ids_multitarget = {
 	266,  -- Demonology Warlock
 	269,  -- Windwalker Monk
 	63,   -- Fire Mage
 	262,  -- Elemental Shaman
 	263,  -- Enhancement Shaman
-	1467, -- Devastation Evoker
-	255,  -- Survival Hunter
 	62,   -- Arcane Mage
+	255,  -- Survival Hunter
+	1467, -- Devastation Evoker
 	258,  -- Shadow Priest
 	102,  -- Balance Druid
-	254,  -- Marksmanship Hunter
 	70,   -- Retribution Paladin
+	254,  -- Marksmanship Hunter
 	265,  -- Affliction Warlock
 	1480, -- Devourer Demon Hunter
-	103,  -- Feral Druid
 	577,  -- Havoc Demon Hunter
+	103,  -- Feral Druid
 	104,  -- Guardian Druid
-	251,  -- Frost Death Knight
 	252,  -- Unholy Death Knight
-	261,  -- Subtlety Rogue
+	251,  -- Frost Death Knight
 	581,  -- Vengeance Demon Hunter
-	250,  -- Blood Death Knight
+	261,  -- Subtlety Rogue
 	64,   -- Frost Mage
 	66,   -- Protection Paladin
+	250,  -- Blood Death Knight
 	73,   -- Protection Warrior
-	253,  -- Beast Mastery Hunter
 	260,  -- Outlaw Rogue
-	72,   -- Fury Warrior
+	253,  -- Beast Mastery Hunter
 	267,  -- Destruction Warlock
+	72,   -- Fury Warrior
 	71,   -- Arms Warrior
 	259,  -- Assassination Rogue
 	268,  -- Brewmaster Monk
