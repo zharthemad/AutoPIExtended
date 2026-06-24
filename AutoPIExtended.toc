@@ -4,9 +4,6 @@
 ## Notes: Automatic Power Infusion target (Priests only)
 ## Author: CzarTheMad
 ## SavedVariables: AutoPIExtendedDB
-# Replace the placeholder below with the numeric Project ID from your CurseForge
-# project page (right-hand sidebar). Until it's set, the release workflow's
-# CurseForge upload will fail; the GitHub Release asset is unaffected.
-## X-Curse-Project-ID: REPLACE_WITH_CURSEFORGE_PROJECT_ID
+## X-Curse-Project-ID: 1586678
 Core.lua
 Options.lua
