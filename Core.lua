@@ -1,5 +1,9 @@
 AutoPIExtended = CreateFrame("Frame")
 
+-- Name of the character macro this addon creates and keeps pointed at the PI
+-- target.
+AutoPIExtended.MACRO_NAME = "APIE"
+
 function AutoPIExtended:OnEvent(event, ...)
 	self[event](self, event, ...)
 end
@@ -606,7 +610,7 @@ function AutoPIExtended:rewriteMacro()
 	if InCombatLockdown() then return end
 
 	-- Prefer GetMacroIndexByName over hard-coded index ranges (future-proof)
-	local found = GetMacroIndexByName("PI_WA_AUTO")
+	local found = GetMacroIndexByName(self.MACRO_NAME)
 	if found == 0 then found = nil end
 
 	local targetname = nil
@@ -712,9 +716,9 @@ function AutoPIExtended:rewriteMacro()
 	self._current_macro = macro
 
 	if found then
-		EditMacro(found, "PI_WA_AUTO", "INV_MISC_QUESTIONMARK", macro)
+		EditMacro(found, self.MACRO_NAME, "INV_MISC_QUESTIONMARK", macro)
 	else
-		CreateMacro("PI_WA_AUTO", "INV_MISC_QUESTIONMARK", macro, true)
+		CreateMacro(self.MACRO_NAME, "INV_MISC_QUESTIONMARK", macro, true)
 	end
 
 	print("AutoPIExtended: updated PI macro — winner is " .. (targetname or "default/focus"))
