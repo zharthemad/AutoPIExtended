@@ -1,5 +1,5 @@
 ## Interface: 120007
-## Version: 12.0.7.32
+## Version: 12.0.7.34
 ## Title: AutoPI Extended
 ## Notes: Automatic Power Infusion target (Priests only)
 ## Author: CzarTheMad

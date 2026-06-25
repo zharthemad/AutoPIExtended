@@ -161,7 +161,7 @@ To ship a release:
 1. Bump `## Version:` in the `.toc` (and `## Interface:` if the WoW patch
    changed) and merge it.
 2. On GitHub, **Releases → Draft a new release**, create a tag matching the
-   version (e.g. `12.0.7.32`), and **Publish**.
+   version (e.g. `12.0.7.34`), and **Publish**.
 3. The workflow packages the addon, uploads it to **CurseForge**, and attaches
    the `.zip` to the GitHub Release.
 
