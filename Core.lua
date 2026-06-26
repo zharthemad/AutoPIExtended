@@ -275,38 +275,38 @@ function AutoPIExtended:_ComputeCandidateScores(list, rank, N, baseline, K, c)
 
 	local out = {}
 	for _, specID in ipairs(list or {}) do
-		if specID == 258 then goto continue end  -- skip Shadow Priests (they PI themselves)
-		local bucket = self.spec_cache[specID]
-		if bucket and next(bucket) then
-			local thisRank = rank[specID] or N
-			local specScore = (N > 1) and ((N - thisRank) / (N - 1)) or 1.0
+		if specID ~= 258 then  -- skip Shadow Priests (they PI themselves)
+			local bucket = self.spec_cache[specID]
+			if bucket and next(bucket) then
+				local thisRank = rank[specID] or N
+				local specScore = (N > 1) and ((N - thisRank) / (N - 1)) or 1.0
 
-			for guid, name in pairs(bucket) do
-				local entry = self.group_cache[guid]
-				if entry and entry.spec and self:isDPS(entry.spec) then
-					local ilvl = entry.ilvl
-					local ilvlScore = 0
-					local rawIlvlScore = 0
-					if self.db.use_weighted_scoring and ilvl and ilvl > 0 then
-						local raw = (ilvl - baseline) / K
-						rawIlvlScore = raw
-						ilvlScore = clamp(raw, -c, c)
+				for guid, name in pairs(bucket) do
+					local entry = self.group_cache[guid]
+					if entry and entry.spec and self:isDPS(entry.spec) then
+						local ilvl = entry.ilvl
+						local ilvlScore = 0
+						local rawIlvlScore = 0
+						if self.db.use_weighted_scoring and ilvl and ilvl > 0 then
+							local raw = (ilvl - baseline) / K
+							rawIlvlScore = raw
+							ilvlScore = clamp(raw, -c, c)
+						end
+						local score = specScore + ilvlScore
+						table.insert(out, {
+							name = name,
+							specID = specID,
+							rank = thisRank,
+							ilvl = ilvl or 0,
+							specScore = specScore,
+							ilvlScore = ilvlScore,
+							rawIlvlScore = rawIlvlScore,
+							total = score,
+						})
 					end
-					local score = specScore + ilvlScore
-					table.insert(out, {
-						name = name,
-						specID = specID,
-						rank = thisRank,
-						ilvl = ilvl or 0,
-						specScore = specScore,
-						ilvlScore = ilvlScore,
-						rawIlvlScore = rawIlvlScore,
-						total = score,
-					})
 				end
 			end
 		end
-		::continue::
 	end
 
 	table.sort(out, function(a,b)
