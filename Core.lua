@@ -147,7 +147,7 @@ AutoPIExtended.K_MULTIPLIER = 0.8
 AutoPIExtended.K_MIN = 60
 AutoPIExtended.K_MAX = 240
 
-function AutoPIExtended:isDPS(specID)
+function AutoPIExtended:isDPS(specID) -- luacheck: ignore 212 (self unused; WoW method convention)
 	local _, _, _, _, role = GetSpecializationInfoByID(specID)
 	return role == "DAMAGER"
 end
@@ -186,7 +186,7 @@ function AutoPIExtended:_ComputeAutoBaseline()
 	end
 
 	local sum, n = 0, 0
-	for guid, entry in pairs(self.group_cache or {}) do
+	for _, entry in pairs(self.group_cache or {}) do
 		if entry and entry.ilvl and entry.ilvl > 0 and entry.spec and self:isDPS(entry.spec) then
 			-- Exclude the priest (player) from target baseline
 			if entry.name and not UnitIsUnit(entry.name, "player") then
@@ -229,7 +229,7 @@ function AutoPIExtended:_ComputeEffectiveK(baseline)
 	return k, self._last_k_source
 end
 
-function AutoPIExtended:_IlvlToTrackLabel(ilvl)
+function AutoPIExtended:_IlvlToTrackLabel(ilvl) -- luacheck: ignore 212 (self unused; WoW method convention)
 	local x = tonumber(ilvl) or 0
 	-- Midnight Season 1 (12.0.5) gear upgrade tracks. Each track has 6 ranks;
 	-- adjacent tracks overlap at shared item levels (shown as "A / B").
@@ -412,9 +412,7 @@ function AutoPIExtended:_ScanGroupForSpecs()
 				-- its cooldown lapses, so persistent stragglers can't keep the queue
 				-- perpetually non-empty.
 				local giveUpUntil = self.inspectGiveUp and self.inspectGiveUp[guid]
-				if giveUpUntil and now < giveUpUntil then
-					-- still cooling down; skip
-				else
+				if not (giveUpUntil and now < giveUpUntil) then
 					local cached = self.group_cache[guid]
 					local stale = (not cached) or (not cached.spec) or (not cached.ts) or (now - cached.ts > self.CACHE_TTL)
 					if stale then
@@ -480,7 +478,7 @@ function AutoPIExtended:_ProcessInspectQueue()
 	end)
 end
 
-function AutoPIExtended:INSPECT_READY(event, guid)
+function AutoPIExtended:INSPECT_READY(event, guid) -- luacheck: ignore 212 (event unused; WoW always passes it)
 	-- Only accept the inspect we initiated
 	if not self.inspectPending or guid ~= self.inspectPending.guid then return end
 
