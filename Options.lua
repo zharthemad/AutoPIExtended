@@ -9,7 +9,7 @@ AutoPIExtended.defaults = {
 	ilvl_auto_k = true,
 	ilvl_baseline = 250,
 	ilvl_k = 100,
-	ilvl_clamp = 0.10,
+	ilvl_clamp = 0.25,
 	show_target_frame = true,
 }
 

@@ -625,6 +625,15 @@ function AutoPIExtended:ADDON_LOADED(event, addOnName)
 		self.db.use_bloodmallet_spec_ids = true
 	end
 
+	-- Schema migrations: run once per version, then stamp db_version so they
+	-- don't re-run. Add a new block here whenever a default changes and existing
+	-- saved values should be updated.
+	if (self.db.db_version or 0) < 1 then
+		-- v1: raise ilvl clamp default 0.10 → 0.25
+		self.db.ilvl_clamp = self.defaults.ilvl_clamp
+	end
+	self.db.db_version = 1
+
 	self:_ResetCaches()
 
 	self:RegisterEvent("PLAYER_REGEN_ENABLED")
