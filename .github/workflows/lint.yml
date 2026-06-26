@@ -5,5 +5,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get install -y lua5.1
-      - run: luac -p Core.lua && luac -p Options.lua
+      - run: sudo apt-get install -y luarocks && sudo luarocks install luacheck
+      - run: luacheck Core.lua Options.lua
