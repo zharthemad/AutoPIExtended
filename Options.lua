@@ -31,7 +31,7 @@ function AutoPIExtended:CreateCheckbox(option, label, parent, updateFunc)
 	end
 	UpdateOption(self.db[option])
 	-- there already is an existing OnClick script that plays a sound, hook it
-	cb:HookScript("OnClick", function(_, btn, down)
+	cb:HookScript("OnClick", function(_, _, _) -- luacheck: ignore 212 (btn/down unused; WoW click handler signature)
 		UpdateOption(cb:GetChecked())
 	end)
 	EventRegistry:RegisterCallback("AutoPIExtended.OnReset", function()
@@ -67,8 +67,8 @@ function AutoPIExtended:CreateNumberBox(option, label, parent, width, onChange, 
 		if onChange then onChange(v) end
 	end
 
-	eb:SetScript("OnEnterPressed", function(self) self:ClearFocus(); commit() end)
-	eb:SetScript("OnEscapePressed", function(self) self:ClearFocus(); eb:SetNumber(tonumber(this.db[option]) or 0) end)
+	eb:SetScript("OnEnterPressed", function(self) self:ClearFocus(); commit() end) -- luacheck: ignore 432
+	eb:SetScript("OnEscapePressed", function(self) self:ClearFocus(); eb:SetNumber(tonumber(this.db[option]) or 0) end) -- luacheck: ignore 432
 	eb:SetScript("OnEditFocusLost", function() commit() end)
 
 	EventRegistry:RegisterCallback("AutoPIExtended.OnReset", function()
@@ -107,14 +107,14 @@ function AutoPIExtended:CreateMultiLineTextBoxWithBackground(option, parent)
     editBox:SetText(self.db[option] or "")
 
     -- Callback when text changes
-    editBox:SetScript("OnTextChanged", function(self, userInput)
+    editBox:SetScript("OnTextChanged", function(self, userInput) -- luacheck: ignore 432 (self = editBox widget; WoW callback pattern)
         if userInput then
             this.db[option] = self:GetText()
             this:rewriteMacro()
         end
     end)
 
-    editBox:SetScript("OnEscapePressed", function(self)
+    editBox:SetScript("OnEscapePressed", function(self) -- luacheck: ignore 432
         self:ClearFocus()
     end)
 
