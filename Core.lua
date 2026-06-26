@@ -139,7 +139,7 @@ AutoPIExtended.INSPECT_GIVEUP_COOLDOWN = 30
 -- is what makes the announcement fire in big raids: rather than waiting for the
 -- queue to be perfectly empty (which a 25-person LFR may never reach due to the
 -- stragglers above), we announce once new spec data stops coming in.
-AutoPIExtended.ANNOUNCE_DEBOUNCE = 3
+AutoPIExtended.ANNOUNCE_DEBOUNCE = 15
 
 -- Auto-K scaling: K = baseline * K_MULTIPLIER, clamped to [K_MIN, K_MAX].
 -- Shared so the options label can be generated from these (never drifts).
@@ -387,13 +387,18 @@ function AutoPIExtended:_RebuildRoster()
 	end
 end
 
-function AutoPIExtended:_QueueInspect(guid, unit)
+function AutoPIExtended:_QueueInspect(guid, unit, priority)
 	-- Avoid duplicates / already have pending
 	for _, item in ipairs(self.inspectQueue) do
 		if item.guid == guid then return end
 	end
 	if self.inspectPending and self.inspectPending.guid == guid then return end
-	table.insert(self.inspectQueue, { guid = guid, unit = unit, tries = 0 })
+	local entry = { guid = guid, unit = unit, tries = 0 }
+	if priority then
+		table.insert(self.inspectQueue, 1, entry)
+	else
+		table.insert(self.inspectQueue, entry)
+	end
 end
 
 function AutoPIExtended:_ScanGroupForSpecs()
@@ -414,9 +419,10 @@ function AutoPIExtended:_ScanGroupForSpecs()
 				local giveUpUntil = self.inspectGiveUp and self.inspectGiveUp[guid]
 				if not (giveUpUntil and now < giveUpUntil) then
 					local cached = self.group_cache[guid]
-					local stale = (not cached) or (not cached.spec) or (not cached.ts) or (now - cached.ts > self.CACHE_TTL)
+					local isNew = not cached
+					local stale = isNew or (not cached.spec) or (not cached.ts) or (now - cached.ts > self.CACHE_TTL)
 					if stale then
-						self:_QueueInspect(guid, unit)
+						self:_QueueInspect(guid, unit, isNew)
 					end
 				end
 			end
