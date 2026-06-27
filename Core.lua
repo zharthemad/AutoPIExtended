@@ -526,6 +526,7 @@ function AutoPIExtended:_AnnounceWinner()
 	local target = self._piTarget
 	if not target or target == "" then return end
 	if not (IsInGroup() or IsInRaid()) then return end
+	if InCombatLockdown() then return end
 
 	local channel
 	if IsInGroup(LE_PARTY_CATEGORY_INSTANCE) then
