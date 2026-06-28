@@ -11,6 +11,7 @@ AutoPIExtended.defaults = {
 	ilvl_k = 100,
 	ilvl_clamp = 0.25,
 	show_target_frame = true,
+	announce_enabled = true,
 }
 
 local function RegisterCanvas(frame)
@@ -161,9 +162,12 @@ function AutoPIExtended:InitializeOptions()
 	local hudCB = self:CreateCheckbox("show_target_frame", "Show on-screen PI target box", mainContent, function() AutoPIExtended:_UpdateTargetFrame() end)
 	hudCB:SetPoint("TOPLEFT", spell391109CB, "BOTTOMLEFT", 0, -10)
 
+	local announceCB = self:CreateCheckbox("announce_enabled", "Announce PI target in group/raid chat", mainContent)
+	announceCB:SetPoint("TOPLEFT", hudCB, "BOTTOMLEFT", 0, -6)
+
 	-- ===== Preferred Players =====
 	local playersTitle = mainContent:CreateFontString(nil, "OVERLAY", "GameFontNormalLarge")
-	playersTitle:SetPoint("TOPLEFT", hudCB, "BOTTOMLEFT", -10, -20)
+	playersTitle:SetPoint("TOPLEFT", announceCB, "BOTTOMLEFT", -10, -20)
 	playersTitle:SetText("Preferred Players (character name only, one per line)")
 
 	self.panel_main.playerslist = self:CreateMultiLineTextBoxWithBackground("playerslist", mainContent)

@@ -523,6 +523,7 @@ function AutoPIExtended:INSPECT_READY(event, guid) -- luacheck: ignore 212 (even
 end
 
 function AutoPIExtended:_AnnounceWinner()
+	if not self.db.announce_enabled then return end
 	local target = self._piTarget
 	if not target or target == "" then return end
 	if not (IsInGroup() or IsInRaid()) then return end
