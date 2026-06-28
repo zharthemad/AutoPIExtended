@@ -577,6 +577,7 @@ end
 -- Timing is handled by the caller (the debounce in _ScheduleAnnounce); this just
 -- decides whether there's a new target worth announcing.
 function AutoPIExtended:_MaybeAnnounceWinner()
+	if not self.db.announce_enabled then return end
 	local target = self._piTarget
 	local current = (target and target ~= "") and target or nil
 	if current == self._lastAnnouncedTarget then return end
