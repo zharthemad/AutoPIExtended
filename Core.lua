@@ -147,6 +147,12 @@ AutoPIExtended.K_MULTIPLIER = 0.8
 AutoPIExtended.K_MIN = 60
 AutoPIExtended.K_MAX = 240
 
+-- Confidence label from the winner's score gap (Δ) to the runner-up.
+-- Shared by rewriteMacro (HUD/announce) and the debug report.
+function AutoPIExtended:_ConfidenceFor(delta) -- luacheck: ignore 212 (self unused; WoW method convention)
+	return (delta >= 0.08 and "HIGH") or (delta >= 0.04 and "MED") or "LOW"
+end
+
 function AutoPIExtended:isDPS(specID) -- luacheck: ignore 212 (self unused; WoW method convention)
 	local _, _, _, _, role = GetSpecializationInfoByID(specID)
 	return role == "DAMAGER"
@@ -739,7 +745,7 @@ function AutoPIExtended:rewriteMacro()
 			if scores and scores[1] then
 				local delta = scores[2] and ((scores[1].total or 0) - (scores[2].total or 0)) or (scores[1].total or 0)
 				self._piDelta = delta
-				self._piConfidence = (delta >= 0.08 and "HIGH") or (delta >= 0.04 and "MED") or "LOW"
+				self._piConfidence = self:_ConfidenceFor(delta)
 				-- Runner-up name, used by the chat announcement on close calls.
 				self._piRunnerUp = scores[2] and scores[2].name or nil
 				return scores[1].name
@@ -939,12 +945,7 @@ function AutoPIExtended:_BuildDebugLines()
 		delta = (scores[1].total or 0)
 	end
 
-	local conf = "LOW"
-	if delta >= 0.08 then
-		conf = "HIGH"
-	elseif delta >= 0.04 then
-		conf = "MED"
-	end
+	local conf = self:_ConfidenceFor(delta)
 
 	add(("winner=%s  confidence=%s (Δ=%.3f)"):format(scores[1].name or "?", conf, delta))
 
