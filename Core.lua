@@ -237,31 +237,33 @@ end
 
 function AutoPIExtended:_IlvlToTrackLabel(ilvl) -- luacheck: ignore 212 (self unused; WoW method convention)
 	local x = tonumber(ilvl) or 0
-	-- Midnight Season 1 (12.0.5) gear upgrade tracks. Each track has 6 ranks;
+	-- Midnight Season 2 (12.1) gear upgrade tracks. Each track has 6 ranks;
 	-- adjacent tracks overlap at shared item levels (shown as "A / B").
+	-- 344 = Voidforged Myth / last two Mythic Venomous Abyss bosses.
 	local map = {
-		[220] = "Adventurer 1",
-		[224] = "Adventurer 2",
-		[227] = "Adventurer 3",
-		[230] = "Adventurer 4",
-		[233] = "Adventurer 5 / Veteran 1",
-		[237] = "Adventurer 6 / Veteran 2",
-		[240] = "Veteran 3",
-		[243] = "Veteran 4",
-		[246] = "Veteran 5 / Champion 1",
-		[250] = "Veteran 6 / Champion 2",
-		[253] = "Champion 3",
-		[256] = "Champion 4",
-		[259] = "Champion 5 / Hero 1",
-		[263] = "Champion 6 / Hero 2",
-		[266] = "Hero 3",
-		[269] = "Hero 4",
-		[272] = "Hero 5 / Myth 1",
-		[276] = "Hero 6 / Myth 2",
-		[279] = "Myth 3",
-		[282] = "Myth 4",
-		[285] = "Myth 5",
-		[289] = "Myth 6",
+		[266] = "Adventurer 1",
+		[269] = "Adventurer 2",
+		[272] = "Adventurer 3",
+		[276] = "Adventurer 4",
+		[279] = "Adventurer 5 / Veteran 1",
+		[282] = "Adventurer 6 / Veteran 2",
+		[285] = "Veteran 3",
+		[289] = "Veteran 4",
+		[292] = "Veteran 5 / Champion 1",
+		[295] = "Veteran 6 / Champion 2",
+		[298] = "Champion 3",
+		[302] = "Champion 4",
+		[305] = "Champion 5 / Hero 1",
+		[308] = "Champion 6 / Hero 2",
+		[311] = "Hero 3",
+		[315] = "Hero 4",
+		[318] = "Hero 5 / Myth 1",
+		[321] = "Hero 6 / Myth 2",
+		[324] = "Myth 3",
+		[328] = "Myth 4",
+		[331] = "Myth 5",
+		[334] = "Myth 6",
+		[344] = "Voidforged Myth",
 	}
 	local bestKey, bestLabel = nil, nil
 	for k, v in pairs(map) do
