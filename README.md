@@ -147,7 +147,7 @@ squishes.
 
 ## Status
 
-Updated for WoW **12.0.7** (Midnight). See open items in the issue tracker /
+Updated for WoW **12.1** (Midnight; Interface 120100, plus 120105 for 12.1.5). See open items in the issue tracker /
 handoff notes.
 
 ## Releasing
@@ -159,9 +159,12 @@ Releases are packaged and published automatically by a GitHub Action
 To ship a release:
 
 1. Bump `## Version:` in the `.toc` (and `## Interface:` if the WoW patch
-   changed) and merge it.
+   changed) and merge it. Version format is `<WoW patch>.<build>`, e.g.
+   `12.1.0.42`: the first three parts are the WoW patch the addon targets, and
+   `<build>` goes up by 1 with every merged PR. It never resets, even when the
+   WoW patch changes (12.0.7.41 → 12.1.0.42).
 2. On GitHub, **Releases → Draft a new release**, create a tag matching the
-   version (e.g. `12.0.7.34`), and **Publish**.
+   version (e.g. `12.1.0.42`), and **Publish**.
 3. The workflow packages the addon, uploads it to **CurseForge**, and attaches
    the `.zip` to the GitHub Release.
 
