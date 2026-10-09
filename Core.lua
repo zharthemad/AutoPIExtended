@@ -145,7 +145,9 @@ AutoPIExtended.ANNOUNCE_DEBOUNCE = 15
 -- Shared so the options label can be generated from these (never drifts).
 AutoPIExtended.K_MULTIPLIER = 0.8
 AutoPIExtended.K_MIN = 60
-AutoPIExtended.K_MAX = 240
+-- K_MAX covers baselines up to 400 (Season 2 groups average ~290-335; the old
+-- 240 cap started biting at a 300 baseline). Raise it if ilvls outgrow that.
+AutoPIExtended.K_MAX = 320
 
 -- Confidence label from the winner's score gap (Δ) to the runner-up.
 -- Shared by rewriteMacro (HUD/announce) and the debug report.
@@ -642,7 +644,14 @@ function AutoPIExtended:ADDON_LOADED(event, addOnName)
 		-- v1: raise ilvl clamp default 0.10 → 0.25
 		self.db.ilvl_clamp = self.defaults.ilvl_clamp
 	end
-	self.db.db_version = 1
+	if (self.db.db_version or 0) < 2 then
+		-- v2: Season 2 ilvls. Move the manual baseline off the old 250 default,
+		-- but leave it alone if the user set their own value.
+		if self.db.ilvl_baseline == 250 then
+			self.db.ilvl_baseline = self.defaults.ilvl_baseline
+		end
+	end
+	self.db.db_version = 2
 
 	self:_ResetCaches()
 
