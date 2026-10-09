@@ -17,40 +17,40 @@ AutoPIExtended:RegisterEvent("ADDON_LOADED")
 -- healers are never selected anyway (isDPS filters to role == DAMAGER).
 -- The active list is chosen by content type (see _ActiveBloodmalletList).
 --
--- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-06-24 (SimC c12e9e5).
+-- SINGLE TARGET (raids): "Castingpatchwerk", sim'd 2026-10-07 (SimC e3fa778).
 AutoPIExtended.bloodmallet_spec_ids = {
-	63,   -- Fire Mage
-	254,  -- Marksmanship Hunter
-	253,  -- Beast Mastery Hunter
-	262,  -- Elemental Shaman
-	269,  -- Windwalker Monk
-	102,  -- Balance Druid
-	266,  -- Demonology Warlock
-	263,  -- Enhancement Shaman
-	103,  -- Feral Druid
-	255,  -- Survival Hunter
-	70,   -- Retribution Paladin
-	265,  -- Affliction Warlock
-	62,   -- Arcane Mage
-	104,  -- Guardian Druid
-	71,   -- Arms Warrior
-	258,  -- Shadow Priest
 	259,  -- Assassination Rogue
-	1480, -- Devourer Demon Hunter
+	265,  -- Affliction Warlock
+	103,  -- Feral Druid
+	262,  -- Elemental Shaman
+	70,   -- Retribution Paladin
+	263,  -- Enhancement Shaman
+	269,  -- Windwalker Monk
+	254,  -- Marksmanship Hunter
+	63,   -- Fire Mage
+	266,  -- Demonology Warlock
 	252,  -- Unholy Death Knight
-	251,  -- Frost Death Knight
-	577,  -- Havoc Demon Hunter
-	64,   -- Frost Mage
-	1467, -- Devastation Evoker
-	72,   -- Fury Warrior
+	255,  -- Survival Hunter
+	253,  -- Beast Mastery Hunter
 	66,   -- Protection Paladin
-	267,  -- Destruction Warlock
+	251,  -- Frost Death Knight
+	71,   -- Arms Warrior
+	1480, -- Devourer Demon Hunter
+	62,   -- Arcane Mage
 	260,  -- Outlaw Rogue
+	267,  -- Destruction Warlock
+	258,  -- Shadow Priest
+	64,   -- Frost Mage
+	72,   -- Fury Warrior
+	577,  -- Havoc Demon Hunter
 	73,   -- Protection Warrior
-	581,  -- Vengeance Demon Hunter
-	250,  -- Blood Death Knight
 	261,  -- Subtlety Rogue
+	250,  -- Blood Death Knight
+	581,  -- Vengeance Demon Hunter
 	268,  -- Brewmaster Monk
+	102,  -- Balance Druid (absent from this sim)
+	104,  -- Guardian Druid (absent from this sim)
+	1467, -- Devastation Evoker (absent from this sim)
 	-- No bloodmallet PI data below this point:
 	1473, -- Augmentation Evoker (support spec; not in PI sims)
 	105,  -- Restoration Druid
@@ -63,40 +63,40 @@ AutoPIExtended.bloodmallet_spec_ids = {
 }
 
 -- MULTITARGET (M+, dungeons, everything non-raid): "Castingpatchwerk5"
--- (5-target), sim'd 2026-06-24 (SimC c12e9e5). Same parked tail.
+-- (5-target), sim'd 2026-10-07 (SimC e3fa778). Same parked tail.
 AutoPIExtended.bloodmallet_spec_ids_multitarget = {
 	266,  -- Demonology Warlock
+	263,  -- Enhancement Shaman
 	269,  -- Windwalker Monk
+	70,   -- Retribution Paladin
 	63,   -- Fire Mage
 	262,  -- Elemental Shaman
-	263,  -- Enhancement Shaman
-	62,   -- Arcane Mage
-	255,  -- Survival Hunter
-	1467, -- Devastation Evoker
-	258,  -- Shadow Priest
-	102,  -- Balance Druid
-	70,   -- Retribution Paladin
-	254,  -- Marksmanship Hunter
-	265,  -- Affliction Warlock
-	1480, -- Devourer Demon Hunter
-	577,  -- Havoc Demon Hunter
-	103,  -- Feral Druid
-	104,  -- Guardian Druid
-	252,  -- Unholy Death Knight
-	251,  -- Frost Death Knight
-	581,  -- Vengeance Demon Hunter
-	261,  -- Subtlety Rogue
-	64,   -- Frost Mage
-	66,   -- Protection Paladin
-	250,  -- Blood Death Knight
-	73,   -- Protection Warrior
 	260,  -- Outlaw Rogue
-	253,  -- Beast Mastery Hunter
-	267,  -- Destruction Warlock
-	72,   -- Fury Warrior
 	71,   -- Arms Warrior
 	259,  -- Assassination Rogue
+	251,  -- Frost Death Knight
+	72,   -- Fury Warrior
+	265,  -- Affliction Warlock
+	255,  -- Survival Hunter
+	103,  -- Feral Druid
+	258,  -- Shadow Priest
+	254,  -- Marksmanship Hunter
+	62,   -- Arcane Mage
+	267,  -- Destruction Warlock
+	66,   -- Protection Paladin
+	252,  -- Unholy Death Knight
+	253,  -- Beast Mastery Hunter
+	64,   -- Frost Mage
+	1480, -- Devourer Demon Hunter
+	577,  -- Havoc Demon Hunter
+	581,  -- Vengeance Demon Hunter
+	250,  -- Blood Death Knight
+	73,   -- Protection Warrior
+	261,  -- Subtlety Rogue
 	268,  -- Brewmaster Monk
+	102,  -- Balance Druid (absent from this sim)
+	104,  -- Guardian Druid (absent from this sim)
+	1467, -- Devastation Evoker (absent from this sim)
 	-- No bloodmallet PI data below this point:
 	1473, -- Augmentation Evoker (support spec; not in PI sims)
 	105,  -- Restoration Druid
