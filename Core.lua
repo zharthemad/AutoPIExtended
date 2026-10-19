@@ -1201,7 +1201,11 @@ function AutoPIExtended:_UpdateTargetFrame()
 
 	local target = self._piTarget
 	if target and target ~= "" then
-		f.name:SetText(target)
+		-- Class-color the name once the client knows the unit's class; until then
+		-- (or if the name doesn't resolve as a unit) keep the default font color.
+		local _, classFile = UnitClass(target)
+		local color = classFile and C_ClassColor.GetClassColor(classFile)
+		f.name:SetText(color and color:WrapTextInColorCode(target) or target)
 	else
 		f.name:SetText("|cff888888(focus / default)|r")
 	end
